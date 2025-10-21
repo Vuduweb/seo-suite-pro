@@ -903,43 +903,42 @@ with tabs[0]:
                 if idx in st.session_state.paa_selected:
                     st.session_state.paa_selected.remove(idx)
         
-        if st.session_state.paa_selected:
-            st.markdown("---")
-            st.success(f"{len(st.session_state.paa_selected)} question(s) sélectionnée(s)")
-            
-            if st.button(f"GÉNÉRER {len(st.session_state.paa_selected)} ARTICLES", type="primary", use_container_width=True):
-                progress_bar = st.progress(0)
-                
-        for i, idx in enumerate(st.session_state.paa_selected):
-                
-                    question_data = st.session_state.paa_questions[idx]
-                    
-                    content = generate_paa_content(
-                        question_data,
-                        st.session_state.anthropic_key,
-                        st.session_state.get('paa_brand_context', '')
-                    )
-                    
-                    st.session_state.paa_content_generated.append({
-                        'question': question_data['question'],
-                        'content': content,
-                        'metadata': question_data,
-                        'timestamp': datetime.now().isoformat(),
-                        'keyword': st.session_state.get('paa_keyword', '')
-                    })
-                    
-                    progress_bar.progress((i + 1) / len(st.session_state.paa_selected))
-                    time.sleep(0.5)
-            
-                        st.success("Articles générés !")
-                        st.session_state.paa_selected = []
-                        st.rerun()
+if st.session_state.paa_selected:
+    st.markdown("---")
+    st.success(f"{len(st.session_state.paa_selected)} question(s) sélectionnée(s)")
     
-    if st.session_state.paa_content_generated:
-        st.markdown("---")
-        st.markdown("### Articles Générés")
+    if st.button(f"GÉNÉRER {len(st.session_state.paa_selected)} ARTICLES", type="primary", use_container_width=True):
+        progress_bar = st.progress(0)
         
-        col1, col2, col3 = st.columns(3)
+        for i, idx in enumerate(st.session_state.paa_selected):
+            question_data = st.session_state.paa_questions[idx]
+            
+            content = generate_paa_content(
+                question_data,
+                st.session_state.anthropic_key,
+                st.session_state.get('paa_brand_context', '')
+            )
+            
+            st.session_state.paa_content_generated.append({
+                'question': question_data['question'],
+                'content': content,
+                'metadata': question_data,
+                'timestamp': datetime.now().isoformat(),
+                'keyword': st.session_state.get('paa_keyword', '')
+            })
+            
+            progress_bar.progress((i + 1) / len(st.session_state.paa_selected))
+            time.sleep(0.5)
+        
+        st.success("Articles générés !")
+        st.session_state.paa_selected = []
+        st.rerun()
+
+if st.session_state.paa_content_generated:
+    st.markdown("---")
+    st.markdown("### Articles Générés")
+    
+    col1, col2, col3 = st.columns(3)
         
         with col1:
             if st.button("Générer Visuels", use_container_width=True):
