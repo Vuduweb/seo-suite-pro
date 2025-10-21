@@ -34,7 +34,7 @@ st.markdown("""
         text-align: center;
         padding: 1rem 0;
     }
-
+    
     .metric-card-pro {
         background: white;
         padding: 2rem;
@@ -43,12 +43,12 @@ st.markdown("""
         border-left: 5px solid #3b82f6;
         transition: all 0.3s ease;
     }
-
+    
     .metric-card-pro:hover {
         transform: translateY(-5px);
         box-shadow: 0 8px 30px rgba(0,0,0,0.12);
     }
-
+    
     .chat-message {
         background: #f8fafc;
         padding: 1rem;
@@ -56,17 +56,17 @@ st.markdown("""
         margin: 0.5rem 0;
         border-left: 4px solid #3b82f6;
     }
-
+    
     .chat-message.user {
         background: #eff6ff;
         border-left-color: #2563eb;
     }
-
+    
     .chat-message.assistant {
         background: #f0fdf4;
         border-left-color: #10b981;
     }
-
+    
     .tag { 
         display: inline-block; 
         padding: 0.3rem 0.8rem; 
@@ -75,14 +75,14 @@ st.markdown("""
         font-weight: 600; 
         margin: 0.2rem;
     }
-
+    
     .tag-p0 { background: #fee2e2; color: #991b1b; }
     .tag-p1 { background: #fef3c7; color: #92400e; }
     .tag-p2 { background: #dbeafe; color: #1e40af; }
     .tag-high { background: #fecaca; color: #991b1b; }
     .tag-medium { background: #fde68a; color: #92400e; }
     .tag-low { background: #bfdbfe; color: #1e40af; }
-
+    
     .roi-card {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
@@ -737,41 +737,97 @@ if 'roi_data' not in st.session_state:
             """, unsafe_allow_html=True)
 
             # ============================================
-            # SIDEBAR
-            # ============================================
+# SIDEBAR
+# ============================================
 
-            with st.sidebar:
-                st.markdown("## Configuration")
-
-                anthropic_key = st.text_input(
-                    "Clé API Anthropic",
-                    type="password",
-                    value=st.session_state.anthropic_key or "",
-                    help="Obtenez votre clé sur https://console.anthropic.com"
-                )
-
-                if st.button("Sauvegarder Configuration", type="primary", use_container_width=True):
-                    if anthropic_key:
-                        st.session_state.anthropic_key = anthropic_key
-                        st.success("Configuration sauvegardée !")
-                    else:
-                        st.error("Clé Anthropic requise")
-
-                st.markdown("---")
-                st.markdown("### Statistiques Session")
-
-                col1, col2 = st.columns(2)
-                with col1:
-                    st.metric("Articles", len(st.session_state.paa_content_generated))
-                    st.metric("Questions", len(st.session_state.paa_questions))
-
-                with col2:
-                    if st.session_state.paa_content_generated:
-                        total_words = sum([len(a['content'].split()) for a in st.session_state.paa_content_generated])
-                        st.metric("Mots", f"{total_words:,}")
-
-                        articles_with_visuals = len([a for a in st.session_state.paa_content_generated if a.get('visuals')])
-                        st.metric("Visuels", articles_with_visuals)
+with st.sidebar:
+    st.markdown("## ⚙️ Configuration")
+    
+    anthropic_key = st.text_input(
+        "🔑 Clé API Anthropic",
+        type="password",
+        value=st.session_state.anthropic_key or "",
+        help="Obtenez votre clé sur https://console.anthropic.com"
+    )
+    
+    if st.button("💾 Sauvegarder Configuration", type="primary", use_container_width=True):
+        if anthropic_key:
+            st.session_state.anthropic_key = anthropic_key
+            st.success("✅ Configuration sauvegardée !")
+        else:
+            st.error("❌ Clé Anthropic requise")
+    
+    st.markdown("---")
+    
+    # Statistiques
+    st.markdown("### 📊 Statistiques Session")
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        st.metric("📝 Articles", len(st.session_state.paa_content_generated))
+        st.metric("❓ Questions", len(st.session_state.paa_questions))
+    
+    with col2:
+        if st.session_state.paa_content_generated:
+            total_words = sum([len(a['content'].split()) for a in st.session_state.paa_content_generated])
+            st.metric("✍️ Mots", f"{total_words:,}")
+            
+            articles_with_visuals = len([a for a in st.session_state.paa_content_generated if a.get('visuals')])
+            st.metric("🎨 Visuels", articles_with_visuals)
+    
+    st.markdown("---")
+    
+    # Modules
+    st.markdown("### 🎯 Modules Actifs")
+    st.markdown("""
+    - ✅ PAA Content Factory
+    - ✅ Génération Visuels IA
+    - ✅ Maillage Interne
+    - ✅ **Injection Auto Liens**
+    - ✅ **Calculateur ROI**
+    - ✅ **Rapports Clients**
+    - ✅ **Assistant IA Chat**
+    """)
+    
+    st.markdown("---")
+    
+    # Paramètres ROI
+    if st.checkbox("⚙️ Paramètres ROI"):
+        st.session_state.roi_data['cost_per_article'] = st.number_input(
+            "Coût/article (€)",
+            value=st.session_state.roi_data['cost_per_article'],
+            min_value=1.0,
+            step=1.0
+        )
+        
+        st.session_state.roi_data['time_per_article'] = st.number_input(
+            "Temps manuel/article (h)",
+            value=st.session_state.roi_data['time_per_article'],
+            min_value=0.5,
+            step=0.5
+        )
+        
+        st.session_state.roi_data['hourly_rate'] = st.number_input(
+            "Taux horaire (€)",
+            value=st.session_state.roi_data['hourly_rate'],
+            min_value=10.0,
+            step=5.0
+        )
+    
+    st.markdown("---")
+    
+    # Actions rapides
+    if st.session_state.paa_content_generated:
+        st.markdown("### ⚡ Actions Rapides")
+        
+        if st.button("🗑️ Tout supprimer", type="secondary", use_container_width=True):
+            st.session_state.paa_content_generated = []
+            st.session_state.paa_questions = []
+            st.session_state.paa_selected = []
+            st.session_state.linking_suggestions = {}
+            st.success("✅ Données effacées")
+            st.rerun()
+            
 # Interface principale
 tabs = st.tabs([
     "PAA Factory",
