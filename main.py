@@ -782,10 +782,10 @@ tabs = st.tabs([
     "Assistant IA",
     "Paramètres"
 ])
-
-            # TAB 1: PAA FACTORY
-            with tabs[0]:
-                st.markdown("## PAA Content Factory")
+# TAB 1: PAA FACTORY
+with tabs[0]:
+    st.markdown("## PAA Content Factory")
+    
 
                 st.markdown("### ÉTAPE 1: Extraction des Questions PAA")
 
@@ -917,9 +917,9 @@ tabs = st.tabs([
                             st.markdown(article['content'])
                             st.download_button("Télécharger", data=article['content'], file_name=f"article_{idx+1}.md", mime="text/markdown", key=f"dl_{idx}")
 
-            # TAB 2: INJECTION
-            with tabs[1]:
-                st.markdown("## Injection Automatique des Liens")
+ TAB 2: INJECTION
+with tabs[1]:
+    st.markdown("## Injection Automatique des Liens")
 
                 if not st.session_state.paa_content_generated:
                     st.info("Générez d'abord du contenu")
@@ -935,9 +935,9 @@ tabs = st.tabs([
                             st.success(f"Injection terminée ! {stats['total_injections']} liens injectés")
                             st.rerun()
 
-            # TAB 3: ROI
-            with tabs[2]:
-                st.markdown("## ROI & Analytics")
+# TAB 3: ROI
+with tabs[2]:
+    st.markdown("## ROI & Analytics")
 
                 if st.session_state.paa_content_generated:
                     roi_data = calculate_roi(st.session_state.paa_content_generated, st.session_state.roi_data)
@@ -954,9 +954,9 @@ tabs = st.tabs([
                 else:
                     st.info("Générez du contenu pour voir le ROI")
 
-            # TAB 4: RAPPORTS
-            with tabs[3]:
-                st.markdown("## Rapports & Tickets")
+# TAB 4: RAPPORTS
+with tabs[3]:
+    st.markdown("## Rapports & Tickets")
 
                 if st.session_state.paa_content_generated:
                     if st.button("GÉNÉRER RAPPORT CLIENT", type="primary"):
@@ -973,9 +973,9 @@ tabs = st.tabs([
                 else:
                     st.info("Générez du contenu d'abord")
 
-            # TAB 5: ASSISTANT
-            with tabs[4]:
-                st.markdown("## Assistant IA")
+# TAB 5: ASSISTANT
+with tabs[4]:
+    st.markdown("## Assistant IA")
 
                 if st.session_state.paa_content_generated:
                     for msg in st.session_state.chat_history:
@@ -997,7 +997,7 @@ tabs = st.tabs([
                 else:
                     st.info("Générez du contenu d'abord")
 
-           # TAB 6: PARAMÈTRES
+# TAB 6: PARAMÈTRES
 with tabs[5]:
     st.markdown("## Paramètres")
     
