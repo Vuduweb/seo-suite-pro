@@ -772,7 +772,6 @@ if 'roi_data' not in st.session_state:
 
                         articles_with_visuals = len([a for a in st.session_state.paa_content_generated if a.get('visuals')])
                         st.metric("Visuels", articles_with_visuals)
-                        
 # Interface principale
 tabs = st.tabs([
     "PAA Factory",
@@ -782,220 +781,220 @@ tabs = st.tabs([
     "Assistant IA",
     "Paramètres"
 ])
+
 # TAB 1: PAA FACTORY
 with tabs[0]:
     st.markdown("## PAA Content Factory")
     
-
-                st.markdown("### ÉTAPE 1: Extraction des Questions PAA")
-
-                col1, col2 = st.columns([3, 1])
-
-                with col1:
-                    paa_keyword = st.text_input(
-                        "Mot-clé principal",
-                        placeholder="Ex: marketing digital"
-                    )
-
-                with col2:
-                    num_paa = st.number_input("Nombre", 5, 50, 20, 5)
-
-                brand_context = st.text_area("Contexte marque (optionnel)", height=80)
-
-                if st.button("EXTRAIRE LES QUESTIONS PAA", type="primary", use_container_width=True):
-                    if not st.session_state.anthropic_key:
-                        st.error("Configurez votre clé API")
-                    elif not paa_keyword:
-                        st.error("Entrez un mot-clé")
-                    else:
-                        with st.spinner("Extraction en cours..."):
-                            paa_data = extract_paa_questions(paa_keyword, st.session_state.anthropic_key, num_paa)
-                            st.session_state.paa_questions = paa_data.get('paa_questions', [])
-                            st.session_state.paa_keyword = paa_keyword
-                            st.session_state.paa_brand_context = brand_context
-
-                            if st.session_state.paa_questions:
-                                st.success(f"{len(st.session_state.paa_questions)} questions extraites !")
-                                time.sleep(0.5)
-                                st.rerun()
-
+    st.markdown("### ÉTAPE 1: Extraction des Questions PAA")
+    
+    col1, col2 = st.columns([3, 1])
+    
+    with col1:
+        paa_keyword = st.text_input(
+            "Mot-clé principal",
+            placeholder="Ex: marketing digital"
+        )
+    
+    with col2:
+        num_paa = st.number_input("Nombre", 5, 50, 20, 5)
+    
+    brand_context = st.text_area("Contexte marque (optionnel)", height=80)
+    
+    if st.button("EXTRAIRE LES QUESTIONS PAA", type="primary", use_container_width=True):
+        if not st.session_state.anthropic_key:
+            st.error("Configurez votre clé API")
+        elif not paa_keyword:
+            st.error("Entrez un mot-clé")
+        else:
+            with st.spinner("Extraction en cours..."):
+                paa_data = extract_paa_questions(paa_keyword, st.session_state.anthropic_key, num_paa)
+                st.session_state.paa_questions = paa_data.get('paa_questions', [])
+                st.session_state.paa_keyword = paa_keyword
+                st.session_state.paa_brand_context = brand_context
+                
                 if st.session_state.paa_questions:
-                    st.markdown("---")
-                    st.markdown("### ÉTAPE 2: Sélection")
+                    st.success(f"{len(st.session_state.paa_questions)} questions extraites !")
+                    time.sleep(0.5)
+                    st.rerun()
+    
+    if st.session_state.paa_questions:
+        st.markdown("---")
+        st.markdown("### ÉTAPE 2: Sélection")
+        
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            if st.button("Tout sélectionner", use_container_width=True):
+                st.session_state.paa_selected = list(range(len(st.session_state.paa_questions)))
+                st.rerun()
+        with col2:
+            if st.button("Désélectionner", use_container_width=True):
+                st.session_state.paa_selected = []
+                st.rerun()
+        with col3:
+            if st.button("P0 seulement", use_container_width=True):
+                st.session_state.paa_selected = [i for i, q in enumerate(st.session_state.paa_questions) if q.get('priority') == 'P0']
+                st.rerun()
+        with col4:
+            if st.button("P0 + P1", use_container_width=True):
+                st.session_state.paa_selected = [i for i, q in enumerate(st.session_state.paa_questions) if q.get('priority') in ['P0', 'P1']]
+                st.rerun()
+        
+        for idx, q in enumerate(st.session_state.paa_questions):
+            priority = q.get('priority', 'P2')
+            is_selected = idx in st.session_state.paa_selected
+            
+            if st.checkbox(f"{q['question']}", value=is_selected, key=f"sel_{idx}"):
+                if idx not in st.session_state.paa_selected:
+                    st.session_state.paa_selected.append(idx)
+            else:
+                if idx in st.session_state.paa_selected:
+                    st.session_state.paa_selected.remove(idx)
+        
+        if st.session_state.paa_selected:
+            st.markdown("---")
+            st.success(f"{len(st.session_state.paa_selected)} question(s) sélectionnée(s)")
+            
+            if st.button(f"GÉNÉRER {len(st.session_state.paa_selected)} ARTICLES", type="primary", use_container_width=True):
+                progress_bar = st.progress(0)
+                
+                for i, idx in enumerate(st.session_state.paa_selected):
+                    question_data = st.session_state.paa_questions[idx]
+                    
+                    content = generate_paa_content(
+                        question_data,
+                        st.session_state.anthropic_key,
+                        st.session_state.get('paa_brand_context', '')
+                    )
+                    
+                    st.session_state.paa_content_generated.append({
+                        'question': question_data['question'],
+                        'content': content,
+                        'metadata': question_data,
+                        'timestamp': datetime.now().isoformat(),
+                        'keyword': st.session_state.get('paa_keyword', '')
+                    })
+                    
+                    progress_bar.progress((i + 1) / len(st.session_state.paa_selected))
+                    time.sleep(0.5)
+                
+                st.success("Articles générés !")
+                st.session_state.paa_selected = []
+                st.rerun()
+    
+    if st.session_state.paa_content_generated:
+        st.markdown("---")
+        st.markdown("### Articles Générés")
+        
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            if st.button("Générer Visuels", use_container_width=True):
+                with st.spinner("Génération visuels..."):
+                    for article in st.session_state.paa_content_generated:
+                        if 'visuals' not in article:
+                            visuals = generate_visual_guide(article['content'], article['question'], st.session_state.anthropic_key)
+                            article['visuals'] = visuals
+                    st.success("Visuels générés !")
+                    st.rerun()
+        
+        with col2:
+            if st.button("Générer Maillage", use_container_width=True):
+                with st.spinner("Génération maillage..."):
+                    linking = generate_internal_linking(st.session_state.paa_content_generated, st.session_state.anthropic_key)
+                    st.session_state.linking_suggestions = linking
+                    st.success("Maillage généré !")
+                    st.rerun()
+        
+        with col3:
+            date_str = datetime.now().strftime('%Y%m%d')
+            all_content = "\n\n".join([f"# ARTICLE {i+1}\n\n{a['content']}" for i, a in enumerate(st.session_state.paa_content_generated)])
+            st.download_button("Télécharger TOUT", data=all_content, file_name=f"articles_{date_str}.md", mime="text/markdown", use_container_width=True)
+        
+        for idx, article in enumerate(st.session_state.paa_content_generated):
+            with st.expander(f"Article #{idx+1}: {article['question'][:60]}...", expanded=(idx==len(st.session_state.paa_content_generated)-1)):
+                st.markdown(article['content'])
+                st.download_button("Télécharger", data=article['content'], file_name=f"article_{idx+1}.md", mime="text/markdown", key=f"dl_{idx}")
 
-                    col1, col2, col3, col4 = st.columns(4)
-                    with col1:
-                        if st.button("Tout sélectionner", use_container_width=True):
-                            st.session_state.paa_selected = list(range(len(st.session_state.paa_questions)))
-                            st.rerun()
-                    with col2:
-                        if st.button("Désélectionner", use_container_width=True):
-                            st.session_state.paa_selected = []
-                            st.rerun()
-                    with col3:
-                        if st.button("P0 seulement", use_container_width=True):
-                            st.session_state.paa_selected = [i for i, q in enumerate(st.session_state.paa_questions) if q.get('priority') == 'P0']
-                            st.rerun()
-                    with col4:
-                        if st.button("P0 + P1", use_container_width=True):
-                            st.session_state.paa_selected = [i for i, q in enumerate(st.session_state.paa_questions) if q.get('priority') in ['P0', 'P1']]
-                            st.rerun()
-
-                    for idx, q in enumerate(st.session_state.paa_questions):
-                        priority = q.get('priority', 'P2')
-                        is_selected = idx in st.session_state.paa_selected
-
-                        if st.checkbox(f"{q['question']}", value=is_selected, key=f"sel_{idx}"):
-                            if idx not in st.session_state.paa_selected:
-                                st.session_state.paa_selected.append(idx)
-                        else:
-                            if idx in st.session_state.paa_selected:
-                                st.session_state.paa_selected.remove(idx)
-
-                    if st.session_state.paa_selected:
-                        st.markdown("---")
-                        st.success(f"{len(st.session_state.paa_selected)} question(s) sélectionnée(s)")
-
-                        if st.button(f"GÉNÉRER {len(st.session_state.paa_selected)} ARTICLES", type="primary", use_container_width=True):
-                            progress_bar = st.progress(0)
-
-                            for i, idx in enumerate(st.session_state.paa_selected):
-                                question_data = st.session_state.paa_questions[idx]
-
-                                content = generate_paa_content(
-                                    question_data,
-                                    st.session_state.anthropic_key,
-                                    st.session_state.get('paa_brand_context', '')
-                                )
-
-                                st.session_state.paa_content_generated.append({
-                                    'question': question_data['question'],
-                                    'content': content,
-                                    'metadata': question_data,
-                                    'timestamp': datetime.now().isoformat(),
-                                    'keyword': st.session_state.get('paa_keyword', '')
-                                })
-
-                                progress_bar.progress((i + 1) / len(st.session_state.paa_selected))
-                                time.sleep(0.5)
-
-                            st.success("Articles générés !")
-                            st.session_state.paa_selected = []
-                            st.rerun()
-
-                if st.session_state.paa_content_generated:
-                    st.markdown("---")
-                    st.markdown("### Articles Générés")
-
-                    col1, col2, col3 = st.columns(3)
-
-                    with col1:
-                        if st.button("Générer Visuels", use_container_width=True):
-                            with st.spinner("Génération visuels..."):
-                                for article in st.session_state.paa_content_generated:
-                                    if 'visuals' not in article:
-                                        visuals = generate_visual_guide(article['content'], article['question'], st.session_state.anthropic_key)
-                                        article['visuals'] = visuals
-                                st.success("Visuels générés !")
-                                st.rerun()
-
-                    with col2:
-                        if st.button("Générer Maillage", use_container_width=True):
-                            with st.spinner("Génération maillage..."):
-                                linking = generate_internal_linking(st.session_state.paa_content_generated, st.session_state.anthropic_key)
-                                st.session_state.linking_suggestions = linking
-                                st.success("Maillage généré !")
-                                st.rerun()
-
-                    with col3:
-                        date_str = datetime.now().strftime('%Y%m%d')
-                        all_content = "\n\n".join([f"# ARTICLE {i+1}\n\n{a['content']}" for i, a in enumerate(st.session_state.paa_content_generated)])
-                        st.download_button("Télécharger TOUT", data=all_content, file_name=f"articles_{date_str}.md", mime="text/markdown", use_container_width=True)
-
-                    for idx, article in enumerate(st.session_state.paa_content_generated):
-                        with st.expander(f"Article #{idx+1}: {article['question'][:60]}...", expanded=(idx==len(st.session_state.paa_content_generated)-1)):
-                            st.markdown(article['content'])
-                            st.download_button("Télécharger", data=article['content'], file_name=f"article_{idx+1}.md", mime="text/markdown", key=f"dl_{idx}")
-
- TAB 2: INJECTION
+# TAB 2: INJECTION
 with tabs[1]:
     st.markdown("## Injection Automatique des Liens")
-
-                if not st.session_state.paa_content_generated:
-                    st.info("Générez d'abord du contenu")
-                elif not st.session_state.linking_suggestions:
-                    st.warning("Générez d'abord le maillage interne")
-                else:
-                    if st.button("INJECTER TOUS LES LIENS", type="primary", use_container_width=True):
-                        with st.spinner("Injection..."):
-                            linking_matrix = st.session_state.linking_suggestions.get('linking_matrix', [])
-                            injected_articles, stats = inject_internal_links(st.session_state.paa_content_generated, linking_matrix)
-                            st.session_state.paa_content_generated = injected_articles
-                            st.session_state.links_injected = True
-                            st.success(f"Injection terminée ! {stats['total_injections']} liens injectés")
-                            st.rerun()
+    
+    if not st.session_state.paa_content_generated:
+        st.info("Générez d'abord du contenu")
+    elif not st.session_state.linking_suggestions:
+        st.warning("Générez d'abord le maillage interne")
+    else:
+        if st.button("INJECTER TOUS LES LIENS", type="primary", use_container_width=True):
+            with st.spinner("Injection..."):
+                linking_matrix = st.session_state.linking_suggestions.get('linking_matrix', [])
+                injected_articles, stats = inject_internal_links(st.session_state.paa_content_generated, linking_matrix)
+                st.session_state.paa_content_generated = injected_articles
+                st.session_state.links_injected = True
+                st.success(f"Injection terminée ! {stats['total_injections']} liens injectés")
+                st.rerun()
 
 # TAB 3: ROI
 with tabs[2]:
     st.markdown("## ROI & Analytics")
-
-                if st.session_state.paa_content_generated:
-                    roi_data = calculate_roi(st.session_state.paa_content_generated, st.session_state.roi_data)
-
-                    col1, col2, col3, col4 = st.columns(4)
-                    with col1:
-                        st.metric("ROI", f"{roi_data['roi_percentage']:.1f}%")
-                    with col2:
-                        st.metric("Valeur Générée", f"{roi_data['value_time_saved']:,.0f}€")
-                    with col3:
-                        st.metric("Investissement", f"{roi_data['total_cost']:.0f}€")
-                    with col4:
-                        st.metric("Temps Économisé", f"{roi_data['time_saved_hours']:.1f}h")
-                else:
-                    st.info("Générez du contenu pour voir le ROI")
+    
+    if st.session_state.paa_content_generated:
+        roi_data = calculate_roi(st.session_state.paa_content_generated, st.session_state.roi_data)
+        
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.metric("ROI", f"{roi_data['roi_percentage']:.1f}%")
+        with col2:
+            st.metric("Valeur Générée", f"{roi_data['value_time_saved']:,.0f}€")
+        with col3:
+            st.metric("Investissement", f"{roi_data['total_cost']:.0f}€")
+        with col4:
+            st.metric("Temps Économisé", f"{roi_data['time_saved_hours']:.1f}h")
+    else:
+        st.info("Générez du contenu pour voir le ROI")
 
 # TAB 4: RAPPORTS
 with tabs[3]:
     st.markdown("## Rapports & Tickets")
-
-                if st.session_state.paa_content_generated:
-                    if st.button("GÉNÉRER RAPPORT CLIENT", type="primary"):
-                        with st.spinner("Génération rapport..."):
-                            roi_data = calculate_roi(st.session_state.paa_content_generated, st.session_state.roi_data)
-                            report = generate_client_report(st.session_state.paa_content_generated, st.session_state.linking_suggestions, roi_data, st.session_state.anthropic_key)
-                            st.session_state['last_report'] = report
-                            st.success("Rapport généré !")
-
-                    if 'last_report' in st.session_state:
-                        st.markdown(st.session_state['last_report'])
-                        date_str = datetime.now().strftime('%Y%m%d')
-                        st.download_button("Télécharger Rapport", data=st.session_state['last_report'], file_name=f"rapport_{date_str}.md", mime="text/markdown")
-                else:
-                    st.info("Générez du contenu d'abord")
+    
+    if st.session_state.paa_content_generated:
+        if st.button("GÉNÉRER RAPPORT CLIENT", type="primary"):
+            with st.spinner("Génération rapport..."):
+                roi_data = calculate_roi(st.session_state.paa_content_generated, st.session_state.roi_data)
+                report = generate_client_report(st.session_state.paa_content_generated, st.session_state.linking_suggestions, roi_data, st.session_state.anthropic_key)
+                st.session_state['last_report'] = report
+                st.success("Rapport généré !")
+        
+        if 'last_report' in st.session_state:
+            st.markdown(st.session_state['last_report'])
+            date_str = datetime.now().strftime('%Y%m%d')
+            st.download_button("Télécharger Rapport", data=st.session_state['last_report'], file_name=f"rapport_{date_str}.md", mime="text/markdown")
+    else:
+        st.info("Générez du contenu d'abord")
 
 # TAB 5: ASSISTANT
 with tabs[4]:
     st.markdown("## Assistant IA")
-
-                if st.session_state.paa_content_generated:
-                    for msg in st.session_state.chat_history:
-                        role = msg['role']
-                        content = msg['content']
-                        if role == 'user':
-                            st.markdown(f"**Vous:** {content}")
-                        else:
-                            st.markdown(f"**Assistant:** {content}")
-
-                    user_input = st.text_area("Votre message", height=100)
-
-                    if st.button("ENVOYER", type="primary"):
-                        if user_input:
-                            st.session_state.chat_history.append({'role': 'user', 'content': user_input})
-                            response = chat_with_assistant(user_input, st.session_state.paa_content_generated, st.session_state.linking_suggestions, st.session_state.anthropic_key)
-                            st.session_state.chat_history.append({'role': 'assistant', 'content': response})
-                            st.rerun()
-                else:
-                    st.info("Générez du contenu d'abord")
+    
+    if st.session_state.paa_content_generated:
+        for msg in st.session_state.chat_history:
+            role = msg['role']
+            content = msg['content']
+            if role == 'user':
+                st.markdown(f"**Vous:** {content}")
+            else:
+                st.markdown(f"**Assistant:** {content}")
+        
+        user_input = st.text_area("Votre message", height=100)
+        
+        if st.button("ENVOYER", type="primary"):
+            if user_input:
+                st.session_state.chat_history.append({'role': 'user', 'content': user_input})
+                response = chat_with_assistant(user_input, st.session_state.paa_content_generated, st.session_state.linking_suggestions, st.session_state.anthropic_key)
+                st.session_state.chat_history.append({'role': 'assistant', 'content': response})
+                st.rerun()
+    else:
+        st.info("Générez du contenu d'abord")
 
 # TAB 6: PARAMÈTRES
 with tabs[5]:
@@ -1017,4 +1016,3 @@ st.markdown("""
     <p>Production Automatisée de Contenu SEO Premium</p>
 </div>
 """, unsafe_allow_html=True)
-            
