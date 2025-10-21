@@ -930,9 +930,8 @@ with tabs[0]:
                     
                     progress_bar.progress((i + 1) / len(st.session_state.paa_selected))
                     time.sleep(0.5)
-                
-                st.success("Articles générés !")
-                st.session_state.paa_selected = []
+                        st.success("Articles générés !")
+                        st.session_state.paa_selected = []
                 st.rerun()
     
     if st.session_state.paa_content_generated:
