@@ -128,8 +128,8 @@ if 'roi_data' not in st.session_state:
     st.session_state.roi_data = {
         'cost_per_article': 15.0,
         'time_per_article': 3.0,
-        'hourly_rate': 50.0
-    }# ============================================
+        'hourly_rate': 50.0}
+    # ============================================
     # FONCTIONS PRINCIPALES
     # ============================================
 
