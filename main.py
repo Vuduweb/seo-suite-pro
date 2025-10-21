@@ -890,12 +890,15 @@ with tabs[0]:
                 st.rerun()
         
         # Afficher le nombre de sélections actuelles
-        st.info(f"📊 {len(st.session_state.paa_selected)} / {len(st.session_state.paa_questions)} questions sélectionnées")
+            if st.session_state.paa_selected:
+            st.markdown("---")
+            st.success(f"{len(st.session_state.paa_selected)} question(s) sélectionnée(s)")
             
             if st.button(f"GÉNÉRER {len(st.session_state.paa_selected)} ARTICLES", type="primary", use_container_width=True):
                 progress_bar = st.progress(0)
                 
                 for i, idx in enumerate(st.session_state.paa_selected):
+                
                     question_data = st.session_state.paa_questions[idx]
                     
                     content = generate_paa_content(
