@@ -891,11 +891,19 @@ with tabs[0]:
 # DEBUG
         st.write(f"DEBUG: {len(st.session_state.paa_questions)} questions en mémoire")
         st.write(f"DEBUG: Questions = {[q['question'][:50] for q in st.session_state.paa_questions[:3]]}")
-        for idx, q in enumerate(st.session_state.paa_questions):
         
-# Afficher le nombre de sélections actuelles
+        for idx, q in enumerate(st.session_state.paa_questions):
+            priority = q.get('priority', 'P2')
+            is_selected = idx in st.session_state.paa_selected
             
-    if st.session_state.paa_selected:
+            if st.checkbox(f"{q['question']}", value=is_selected, key=f"sel_{idx}"):
+                if idx not in st.session_state.paa_selected:
+                    st.session_state.paa_selected.append(idx)
+            else:
+                if idx in st.session_state.paa_selected:
+                    st.session_state.paa_selected.remove(idx)
+        
+        if st.session_state.paa_selected:
             st.markdown("---")
             st.success(f"{len(st.session_state.paa_selected)} question(s) sélectionnée(s)")
             
