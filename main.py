@@ -997,24 +997,24 @@ if 'roi_data' not in st.session_state:
                 else:
                     st.info("Générez du contenu d'abord")
 
-            # TAB 6: PARAMÈTRES
-            with tabs[5]:
-                st.markdown("## Paramètres")
+           # TAB 6: PARAMÈTRES
+with tabs[5]:
+    st.markdown("## Paramètres")
+    
+    if st.button("Supprimer Tous les Articles", type="secondary"):
+        if st.checkbox("Confirmer"):
+            st.session_state.paa_content_generated = []
+            st.session_state.linking_suggestions = {}
+            st.session_state.links_injected = False
+            st.success("Articles supprimés")
+            st.rerun()
 
-                if st.button("Supprimer Tous les Articles", type="secondary"):
-                    if st.checkbox("Confirmer"):
-                        st.session_state.paa_content_generated = []
-                        st.session_state.linking_suggestions = {}
-                        st.session_state.links_injected = False
-                        st.success("Articles supprimés")
-                        st.rerun()
-
-            # FOOTER
-            st.markdown("---")
-            st.markdown("""
-            <div style='text-align: center; padding: 2rem;'>
-                <h3>SEO Intelligence Suite Pro v5.0</h3>
-                <p>Production Automatisée de Contenu SEO Premium</p>
-            </div>
-            """, unsafe_allow_html=True)
+# FOOTER
+st.markdown("---")
+st.markdown("""
+<div style='text-align: center; padding: 2rem;'>
+    <h3>SEO Intelligence Suite Pro v5.0</h3>
+    <p>Production Automatisée de Contenu SEO Premium</p>
+</div>
+""", unsafe_allow_html=True)
             
