@@ -939,24 +939,24 @@ if st.session_state.paa_content_generated:
     st.markdown("### Articles Générés")
     
     col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            if st.button("Générer Visuels", use_container_width=True):
-                with st.spinner("Génération visuels..."):
-                    for article in st.session_state.paa_content_generated:
-                        if 'visuals' not in article:
-                            visuals = generate_visual_guide(article['content'], article['question'], st.session_state.anthropic_key)
-                            article['visuals'] = visuals
-                    st.success("Visuels générés !")
-                    st.rerun()
-        
-        with col2:
-            if st.button("Générer Maillage", use_container_width=True):
-                with st.spinner("Génération maillage..."):
-                    linking = generate_internal_linking(st.session_state.paa_content_generated, st.session_state.anthropic_key)
-                    st.session_state.linking_suggestions = linking
-                    st.success("Maillage généré !")
-                    st.rerun()
+    
+    with col1:
+        if st.button("Générer Visuels", use_container_width=True):
+            with st.spinner("Génération visuels..."):
+                for article in st.session_state.paa_content_generated:
+                    if 'visuals' not in article:
+                        visuals = generate_visual_guide(article['content'], article['question'], st.session_state.anthropic_key)
+                        article['visuals'] = visuals
+                st.success("Visuels générés !")
+                st.rerun()
+    
+    with col2:
+        if st.button("Générer Maillage", use_container_width=True):
+            with st.spinner("Génération maillage..."):
+                linking = generate_internal_linking(st.session_state.paa_content_generated, st.session_state.anthropic_key)
+                st.session_state.linking_suggestions = linking
+                st.success("Maillage généré !")
+                st.rerun()
         
         with col3:
             date_str = datetime.now().strftime('%Y%m%d')
