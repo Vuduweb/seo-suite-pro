@@ -132,8 +132,7 @@ if 'roi_data' not in st.session_state:
     # ============================================
     # FONCTIONS PRINCIPALES
     # ============================================
-
-    def extract_paa_questions(keyword, anthropic_key, num=20):
+def extract_paa_questions(keyword, anthropic_key, num=20):
         """Extrait les questions PAA avec Claude"""
         client = anthropic.Anthropic(api_key=anthropic_key)
 
@@ -185,8 +184,7 @@ if 'roi_data' not in st.session_state:
             st.error(f"Erreur extraction PAA: {str(e)}")
             return {"paa_questions": []}
 
-
-    def generate_paa_content(question_data, anthropic_key, brand_context=""):
+def generate_paa_content(question_data, anthropic_key, brand_context=""):
         """Génère un article SEO complet optimisé"""
         client = anthropic.Anthropic(api_key=anthropic_key)
 
@@ -325,8 +323,7 @@ if 'roi_data' not in st.session_state:
         except Exception as e:
             return f"Erreur lors de la génération: {str(e)}"
 
-
-    def generate_visual_guide(article_content, question, anthropic_key):
+def generate_visual_guide(article_content, question, anthropic_key):
         """Génère un guide visuel complet avec prompts IA"""
         client = anthropic.Anthropic(api_key=anthropic_key)
 
@@ -394,8 +391,7 @@ if 'roi_data' not in st.session_state:
             st.error(f"Erreur génération visuels: {str(e)}")
             return {}
 
-
-    def generate_internal_linking(articles_data, anthropic_key):
+def generate_internal_linking(articles_data, anthropic_key):
         """Génère une stratégie de maillage interne intelligente"""
         client = anthropic.Anthropic(api_key=anthropic_key)
 
@@ -474,8 +470,7 @@ if 'roi_data' not in st.session_state:
             st.error(f"Erreur génération maillage: {str(e)}")
             return {}
 
-
-    def inject_internal_links(articles, linking_matrix):
+def inject_internal_links(articles, linking_matrix):
         """Injecte automatiquement les liens dans les articles"""
 
         injected_articles = []
@@ -542,8 +537,7 @@ if 'roi_data' not in st.session_state:
 
         return injected_articles, injection_stats
 
-
-    def calculate_roi(articles_data, roi_params):
+def calculate_roi(articles_data, roi_params):
         """Calcule le ROI détaillé de la production de contenu"""
 
         num_articles = len(articles_data)
@@ -593,8 +587,7 @@ if 'roi_data' not in st.session_state:
             'break_even_months': (total_cost / monthly_value) if monthly_value > 0 else 0
         }
 
-
-    def generate_client_report(articles_data, linking_data, roi_data, anthropic_key):
+def generate_client_report(articles_data, linking_data, roi_data, anthropic_key):
         """Génère un rapport client professionnel"""
         client = anthropic.Anthropic(api_key=anthropic_key)
 
@@ -671,7 +664,7 @@ if 'roi_data' not in st.session_state:
             return f"Erreur génération rapport: {str(e)}"
 
 
-    def generate_dev_tickets(linking_data, articles_data):
+def generate_dev_tickets(linking_data, articles_data):
         """Génère des tickets de développement"""
         tickets = []
         total_links = linking_data.get('metrics', {}).get('total_links', 0)
@@ -693,7 +686,7 @@ if 'roi_data' not in st.session_state:
         return tickets
 
 
-    def chat_with_assistant(user_message, articles_data, linking_data, anthropic_key):
+def chat_with_assistant(user_message, articles_data, linking_data, anthropic_key):
         """Assistant IA conversationnel"""
         client = anthropic.Anthropic(api_key=anthropic_key)
 
