@@ -888,8 +888,13 @@ with tabs[0]:
             if st.button("🌟 P0 + P1", use_container_width=True, key="select_p0p1"):
                 st.session_state.paa_selected = [i for i, q in enumerate(st.session_state.paa_questions) if q.get('priority') in ['P0', 'P1']]
                 st.rerun()
+# DEBUG
+        st.write(f"DEBUG: {len(st.session_state.paa_questions)} questions en mémoire")
+        st.write(f"DEBUG: Questions = {[q['question'][:50] for q in st.session_state.paa_questions[:3]]}")
         
-        # Afficher le nombre de sélections actuelles
+        for idx, q in enumerate(st.session_state.paa_questions):
+        
+# Afficher le nombre de sélections actuelles
             
     if st.session_state.paa_selected:
             st.markdown("---")
