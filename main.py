@@ -902,7 +902,7 @@ with tabs[0]:
             if st.button(f"GÉNÉRER {len(st.session_state.paa_selected)} ARTICLES", type="primary", use_container_width=True):
                 progress_bar = st.progress(0)
                 
-                for i, idx in enumerate(st.session_state.paa_selected):
+        for i, idx in enumerate(st.session_state.paa_selected):
                 
                     question_data = st.session_state.paa_questions[idx]
                     
