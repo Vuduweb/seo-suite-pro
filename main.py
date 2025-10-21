@@ -772,16 +772,16 @@ if 'roi_data' not in st.session_state:
 
                         articles_with_visuals = len([a for a in st.session_state.paa_content_generated if a.get('visuals')])
                         st.metric("Visuels", articles_with_visuals)
-
-            # Interface principale
-            tabs = st.tabs([
-                "PAA Factory",
-                "Injection Liens", 
-                "ROI & Analytics",
-                "Rapports & Tickets",
-                "Assistant IA",
-                "Paramètres"
-            ])
+                        
+# Interface principale
+tabs = st.tabs([
+    "PAA Factory",
+    "Injection Liens", 
+    "ROI & Analytics",
+    "Rapports & Tickets",
+    "Assistant IA",
+    "Paramètres"
+])
 
             # TAB 1: PAA FACTORY
             with tabs[0]:
