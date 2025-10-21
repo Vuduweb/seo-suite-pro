@@ -873,36 +873,24 @@ with tabs[0]:
         
         col1, col2, col3, col4 = st.columns(4)
         with col1:
-            if st.button("Tout sélectionner", use_container_width=True):
+            if st.button("✅ Tout sélectionner", use_container_width=True, key="select_all"):
                 st.session_state.paa_selected = list(range(len(st.session_state.paa_questions)))
                 st.rerun()
         with col2:
-            if st.button("Désélectionner", use_container_width=True):
+            if st.button("⬜ Désélectionner", use_container_width=True, key="deselect_all"):
                 st.session_state.paa_selected = []
                 st.rerun()
         with col3:
-            if st.button("P0 seulement", use_container_width=True):
+            if st.button("⭐ P0 seulement", use_container_width=True, key="select_p0"):
                 st.session_state.paa_selected = [i for i, q in enumerate(st.session_state.paa_questions) if q.get('priority') == 'P0']
                 st.rerun()
         with col4:
-            if st.button("P0 + P1", use_container_width=True):
+            if st.button("🌟 P0 + P1", use_container_width=True, key="select_p0p1"):
                 st.session_state.paa_selected = [i for i, q in enumerate(st.session_state.paa_questions) if q.get('priority') in ['P0', 'P1']]
                 st.rerun()
         
-        for idx, q in enumerate(st.session_state.paa_questions):
-            priority = q.get('priority', 'P2')
-            is_selected = idx in st.session_state.paa_selected
-            
-            if st.checkbox(f"{q['question']}", value=is_selected, key=f"sel_{idx}"):
-                if idx not in st.session_state.paa_selected:
-                    st.session_state.paa_selected.append(idx)
-            else:
-                if idx in st.session_state.paa_selected:
-                    st.session_state.paa_selected.remove(idx)
-        
-        if st.session_state.paa_selected:
-            st.markdown("---")
-            st.success(f"{len(st.session_state.paa_selected)} question(s) sélectionnée(s)")
+        # Afficher le nombre de sélections actuelles
+        st.info(f"📊 {len(st.session_state.paa_selected)} / {len(st.session_state.paa_questions)} questions sélectionnées")
             
             if st.button(f"GÉNÉRER {len(st.session_state.paa_selected)} ARTICLES", type="primary", use_container_width=True):
                 progress_bar = st.progress(0)
