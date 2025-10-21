@@ -890,7 +890,8 @@ with tabs[0]:
                 st.rerun()
         
         # Afficher le nombre de sélections actuelles
-            if st.session_state.paa_selected:
+            
+    if st.session_state.paa_selected:
             st.markdown("---")
             st.success(f"{len(st.session_state.paa_selected)} question(s) sélectionnée(s)")
             
