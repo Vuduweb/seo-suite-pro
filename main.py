@@ -891,7 +891,7 @@ with tabs[0]:
 # DEBUG
         st.write(f"DEBUG: {len(st.session_state.paa_questions)} questions en mémoire")
         st.write(f"DEBUG: Questions = {[q['question'][:50] for q in st.session_state.paa_questions[:3]]}")
-                for idx, q in enumerate(st.session_state.paa_questions):
+        for idx, q in enumerate(st.session_state.paa_questions):
         
 # Afficher le nombre de sélections actuelles
             
