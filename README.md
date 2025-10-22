@@ -24,7 +24,7 @@ pip install -r requirements.txt
 
 4. Lancez l'application
 ```bash
-streamlit run seo_suite_pro_v6.py
+streamlit run main.py
 ```
 
 ## Configuration
