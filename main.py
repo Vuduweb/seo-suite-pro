@@ -898,53 +898,54 @@ def main():
         "☁️ Google Workspace"
     ])
     
-    # TAB 1: GÉNÉRATION PAA
-    with tabs[0]:
-        st.markdown("## 🎯 Extraction & Génération PAA")
-        
-        col1, col2 = st.columns([2, 1])
-        
-        with col1:
-            keyword = st.text_input(
-                "🔍 Mot-clé principal",
-                value=st.session_state.get('paa_keyword', ''),
-                placeholder="Ex: marketing digital",
-                help="Le mot-clé pour lequel générer des questions PAA"
-            )
-            st.session_state.paa_keyword = keyword
-        
-        with col2:
-            num_questions = st.selectbox(
-                "📝 Nombre de questions",
-                options=[10, 20, 30, 50],
-                index=1
-            )
-        
-        brand_context = st.text_area(
-            "🏢 Contexte de marque (optionnel)",
-            value=st.session_state.get('paa_brand_context', ''),
-            placeholder="Ex: Nous sommes une agence SEO spécialisée en e-commerce...",
-            height=100
+# TAB 1: GÉNÉRATION PAA
+with tabs[0]:
+    st.markdown("## 🎯 Extraction & Génération PAA")
+    
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        keyword = st.text_input(
+            "🔍 Mot-clé principal",
+            value=st.session_state.get('paa_keyword', ''),
+            placeholder="Ex: marketing digital",
+            help="Le mot-clé pour lequel générer des questions PAA"
         )
-        st.session_state.paa_brand_context = brand_context
-
-if st.button("🚀 EXTRAIRE LES QUESTIONS PAA", type="primary", use_container_width=True):
-    if keyword:
-        # Vérifier que la clé API est configurée
-        if not st.session_state.anthropic_key:
-            st.error("❌ Clé API Anthropic manquante ! Configurez-la dans la sidebar ou dans les Secrets.")
-            st.info("👉 Pour configurer : Settings → Secrets → Ajoutez 'anthropic_key'")
-            st.stop()
-        
-        with st.spinner("🔍 Extraction des questions PAA en cours..."):
-            data = extract_paa_questions(keyword, st.session_state.anthropic_key, num_questions)
-            st.session_state.paa_questions = data.get('paa_questions', [])
+        st.session_state.paa_keyword = keyword
+    
+    with col2:
+        num_questions = st.selectbox(
+            "📝 Nombre de questions",
+            options=[10, 20, 30, 50],
+            index=1
+        )
+    
+    brand_context = st.text_area(
+        "🏢 Contexte de marque (optionnel)",
+        value=st.session_state.get('paa_brand_context', ''),
+        placeholder="Ex: Nous sommes une agence SEO spécialisée en e-commerce...",
+        height=100
+    )
+    st.session_state.paa_brand_context = brand_context
+    
+    # BOUTON D'EXTRACTION - ICI keyword est déjà défini !
+    if st.button("🚀 EXTRAIRE LES QUESTIONS PAA", type="primary", use_container_width=True):
+        if keyword:
+            # Vérifier que la clé API est configurée
+            if not st.session_state.anthropic_key:
+                st.error("❌ Clé API Anthropic manquante ! Configurez-la dans la sidebar ou dans les Secrets.")
+                st.info("👉 Pour configurer : Settings → Secrets → Ajoutez 'anthropic_key'")
+                st.stop()
             
-        if st.session_state.paa_questions:
-            st.success(f"✅ {len(st.session_state.paa_questions)} questions extraites!")
-            st.rerun()
-    else:
-        st.warning("⚠️ Veuillez entrer un mot-clé")
+            with st.spinner("🔍 Extraction des questions PAA en cours..."):
+                data = extract_paa_questions(keyword, st.session_state.anthropic_key, num_questions)
+                st.session_state.paa_questions = data.get('paa_questions', [])
+                
+            if st.session_state.paa_questions:
+                st.success(f"✅ {len(st.session_state.paa_questions)} questions extraites!")
+                st.rerun()
+        else:
+            st.warning("⚠️ Veuillez entrer un mot-clé")
         
         # Affichage des questions
         if st.session_state.paa_questions:
