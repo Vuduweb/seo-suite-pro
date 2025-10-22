@@ -928,7 +928,7 @@ def main():
         )
         st.session_state.paa_brand_context = brand_context
 
-    if st.button("🚀 EXTRAIRE LES QUESTIONS PAA", type="primary", use_container_width=True):
+if st.button("🚀 EXTRAIRE LES QUESTIONS PAA", type="primary", use_container_width=True):
     if keyword:
         # Vérifier que la clé API est configurée
         if not st.session_state.anthropic_key:
