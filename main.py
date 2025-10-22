@@ -927,18 +927,24 @@ def main():
             height=100
         )
         st.session_state.paa_brand_context = brand_context
+
+    if st.button("🚀 EXTRAIRE LES QUESTIONS PAA", type="primary", use_container_width=True):
+    if keyword:
+        # Vérifier que la clé API est configurée
+        if not st.session_state.anthropic_key:
+            st.error("❌ Clé API Anthropic manquante ! Configurez-la dans la sidebar ou dans les Secrets.")
+            st.info("👉 Pour configurer : Settings → Secrets → Ajoutez 'anthropic_key'")
+            st.stop()
         
-        if st.button("🚀 EXTRAIRE LES QUESTIONS PAA", type="primary", use_container_width=True):
-            if keyword:
-                with st.spinner("🔍 Extraction des questions PAA en cours..."):
-                    data = extract_paa_questions(keyword, st.session_state.anthropic_key, num_questions)
-                    st.session_state.paa_questions = data.get('paa_questions', [])
-                    
-                if st.session_state.paa_questions:
-                    st.success(f"✅ {len(st.session_state.paa_questions)} questions extraites!")
-                    st.rerun()
-            else:
-                st.warning("⚠️ Veuillez entrer un mot-clé")
+        with st.spinner("🔍 Extraction des questions PAA en cours..."):
+            data = extract_paa_questions(keyword, st.session_state.anthropic_key, num_questions)
+            st.session_state.paa_questions = data.get('paa_questions', [])
+            
+        if st.session_state.paa_questions:
+            st.success(f"✅ {len(st.session_state.paa_questions)} questions extraites!")
+            st.rerun()
+    else:
+        st.warning("⚠️ Veuillez entrer un mot-clé")
         
         # Affichage des questions
         if st.session_state.paa_questions:
