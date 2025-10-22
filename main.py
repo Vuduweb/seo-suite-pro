@@ -1,5 +1,10 @@
 import streamlit as st
 import anthropic
+import google.generativeai as genai
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import Flow
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaIoBaseUpload
 import requests
 from bs4 import BeautifulSoup
 from datetime import datetime
@@ -7,88 +12,280 @@ import json
 from urllib.parse import urlparse
 import time
 import re
+from PIL import Image
+import io
+import base64
 
 # ============================================
 # CONFIGURATION STREAMLIT
 # ============================================
 
 st.set_page_config(
-    page_title="SEO Intelligence Suite Pro v5.0",
+    page_title="SEO Intelligence Suite Pro v6.0 🚀",
     page_icon="🚀",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
 # ============================================
-# CSS PERSONNALISÉ
+# CSS MODERNE ET ÉLÉGANT
 # ============================================
 
 st.markdown("""
 <style>
+    /* Import Google Fonts */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+    
+    * {
+        font-family: 'Inter', sans-serif;
+    }
+    
+    /* Main Container */
+    .main {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background-attachment: fixed;
+    }
+    
+    .block-container {
+        padding: 2rem 3rem;
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 20px;
+        margin: 1rem auto;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        backdrop-filter: blur(10px);
+    }
+    
+    /* Header animé */
     .main-header {
-        font-size: 3rem;
-        font-weight: bold;
-        background: linear-gradient(120deg, #1e3a8a, #3b82f6, #06b6d4);
+        font-size: 3.5rem;
+        font-weight: 800;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         text-align: center;
-        padding: 1rem 0;
+        padding: 2rem 0;
+        animation: gradient 3s ease infinite;
+        background-size: 200% 200%;
+        letter-spacing: -1px;
     }
     
+    @keyframes gradient {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+    
+    .subtitle {
+        text-align: center;
+        color: #64748b;
+        font-size: 1.2rem;
+        margin-top: -1rem;
+        margin-bottom: 2rem;
+        font-weight: 500;
+    }
+    
+    /* Cards modernes */
     .metric-card-pro {
-        background: white;
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
         padding: 2rem;
-        border-radius: 15px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-        border-left: 5px solid #3b82f6;
-        transition: all 0.3s ease;
+        border-radius: 20px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.06);
+        border: 1px solid rgba(102, 126, 234, 0.1);
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .metric-card-pro::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 4px;
+        background: linear-gradient(90deg, #667eea, #764ba2);
+        transform: scaleX(0);
+        transition: transform 0.4s ease;
+    }
+    
+    .metric-card-pro:hover::before {
+        transform: scaleX(1);
     }
     
     .metric-card-pro:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+        transform: translateY(-10px) scale(1.02);
+        box-shadow: 0 20px 60px rgba(102, 126, 234, 0.25);
     }
     
-    .chat-message {
-        background: #f8fafc;
-        padding: 1rem;
-        border-radius: 10px;
-        margin: 0.5rem 0;
-        border-left: 4px solid #3b82f6;
-    }
-    
-    .chat-message.user {
-        background: #eff6ff;
-        border-left-color: #2563eb;
-    }
-    
-    .chat-message.assistant {
-        background: #f0fdf4;
-        border-left-color: #10b981;
-    }
-    
-    .tag { 
-        display: inline-block; 
-        padding: 0.3rem 0.8rem; 
-        border-radius: 20px; 
-        font-size: 0.75rem; 
-        font-weight: 600; 
-        margin: 0.2rem;
-    }
-    
-    .tag-p0 { background: #fee2e2; color: #991b1b; }
-    .tag-p1 { background: #fef3c7; color: #92400e; }
-    .tag-p2 { background: #dbeafe; color: #1e40af; }
-    .tag-high { background: #fecaca; color: #991b1b; }
-    .tag-medium { background: #fde68a; color: #92400e; }
-    .tag-low { background: #bfdbfe; color: #1e40af; }
-    
-    .roi-card {
+    /* Boutons stylés */
+    .stButton > button {
+        border-radius: 12px;
+        font-weight: 600;
+        padding: 0.75rem 2rem;
+        transition: all 0.3s ease;
+        border: none;
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
-        padding: 2rem;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    }
+    
+    .stButton > button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 25px rgba(102, 126, 234, 0.6);
+    }
+    
+    /* Tags premium */
+    .tag { 
+        display: inline-block; 
+        padding: 0.4rem 1rem; 
+        border-radius: 25px; 
+        font-size: 0.8rem; 
+        font-weight: 600; 
+        margin: 0.3rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+    }
+    
+    .tag:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    
+    .tag-p0 { 
+        background: linear-gradient(135deg, #ff6b6b, #ee5a6f);
+        color: white;
+    }
+    .tag-p1 { 
+        background: linear-gradient(135deg, #ffd93d, #f9ca24);
+        color: #2d3436;
+    }
+    .tag-p2 { 
+        background: linear-gradient(135deg, #74b9ff, #0984e3);
+        color: white;
+    }
+    
+    /* Expanders élégants */
+    .streamlit-expanderHeader {
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+        font-weight: 600;
+        padding: 1rem;
+        transition: all 0.3s ease;
+    }
+    
+    .streamlit-expanderHeader:hover {
+        background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);
+        transform: translateX(5px);
+    }
+    
+    /* Progress bar moderne */
+    .stProgress > div > div > div > div {
+        background: linear-gradient(90deg, #667eea, #764ba2, #f093fb);
+        background-size: 200% 100%;
+        animation: progress 1.5s ease infinite;
+    }
+    
+    @keyframes progress {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+    
+    /* Success/Error messages */
+    .element-container div.stAlert {
+        border-radius: 12px;
+        border: none;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+    
+    /* Input fields */
+    .stTextInput > div > div > input,
+    .stTextArea > div > div > textarea {
+        border-radius: 12px;
+        border: 2px solid #e2e8f0;
+        padding: 0.75rem;
+        transition: all 0.3s ease;
+    }
+    
+    .stTextInput > div > div > input:focus,
+    .stTextArea > div > div > textarea:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    
+    /* Sidebar styling */
+    .css-1d391kg {
+        background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    /* Image preview */
+    .image-preview {
         border-radius: 15px;
-        box-shadow: 0 10px 30px rgba(102,126,234,0.3);
+        box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        transition: all 0.3s ease;
+    }
+    
+    .image-preview:hover {
+        transform: scale(1.05);
+        box-shadow: 0 15px 50px rgba(0,0,0,0.3);
+    }
+    
+    /* Stats cards */
+    .stat-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1.5rem;
+        border-radius: 15px;
+        text-align: center;
+        box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+    }
+    
+    .stat-value {
+        font-size: 2.5rem;
+        font-weight: 800;
+        margin: 0.5rem 0;
+    }
+    
+    .stat-label {
+        font-size: 0.9rem;
+        opacity: 0.9;
+        font-weight: 500;
+    }
+    
+    /* Tabs personnalisés */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 1rem;
+        background: transparent;
+    }
+    
+    .stTabs [data-baseweb="tab"] {
+        border-radius: 12px;
+        padding: 0.75rem 1.5rem;
+        font-weight: 600;
+        background: #f8fafc;
+        transition: all 0.3s ease;
+    }
+    
+    .stTabs [aria-selected="true"] {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+    
+    /* Loading animation */
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    .loading-spinner {
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #667eea;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        margin: 2rem auto;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -100,6 +297,12 @@ st.markdown("""
 if 'anthropic_key' not in st.session_state:
     st.session_state.anthropic_key = None
 
+if 'gemini_key' not in st.session_state:
+    st.session_state.gemini_key = None
+
+if 'google_creds' not in st.session_state:
+    st.session_state.google_creds = None
+
 if 'paa_questions' not in st.session_state:
     st.session_state.paa_questions = []
 
@@ -108,6 +311,9 @@ if 'paa_selected' not in st.session_state:
 
 if 'paa_content_generated' not in st.session_state:
     st.session_state.paa_content_generated = []
+
+if 'generated_images' not in st.session_state:
+    st.session_state.generated_images = {}
 
 if 'linking_suggestions' not in st.session_state:
     st.session_state.linking_suggestions = {}
@@ -128,943 +334,1227 @@ if 'roi_data' not in st.session_state:
     st.session_state.roi_data = {
         'cost_per_article': 15.0,
         'time_per_article': 3.0,
-        'hourly_rate': 50.0}
-    # ============================================
-    # FONCTIONS PRINCIPALES
-    # ============================================
-def extract_paa_questions(keyword, anthropic_key, num=20):
-        """Extrait les questions PAA avec Claude"""
-        client = anthropic.Anthropic(api_key=anthropic_key)
-
-        prompt = f"""Tu es un expert SEO. Génère {num} questions PAA (People Also Ask) réalistes et variées pour le mot-clé "{keyword}".
-
-    Format JSON strict requis:
-    {{
-      "paa_questions": [
-        {{
-          "question": "Question PAA complète et naturelle ?",
-          "priority": "P0",
-          "difficulty": "easy",
-          "search_intent": "informational",
-          "estimated_volume": "high",
-          "related_keywords": ["kw1", "kw2", "kw3"],
-          "content_type": "Article",
-          "content_angle": "Comment faire X",
-          "target_length": "1500-2000 words"
-        }}
-      ]
-    }}
-
-    Critères:
-    - Questions variées (comment, pourquoi, quoi, combien, etc.)
-    - Priorité: P0 (haute), P1 (moyenne), P2 (basse)
-    - Difficulté: easy, medium, hard
-    - Intent: informational, transactional, navigational
-    - Volume: high, medium, low
-
-    Réponds UNIQUEMENT avec le JSON, rien d'autre."""
-
-        try:
-            message = client.messages.create(
-                model="claude-sonnet-4-5-20250929",
-                max_tokens=8000,
-                messages=[{"role": "user", "content": prompt}]
-            )
-
-            text = message.content[0].text
-            json_match = re.search(r'\{[\s\S]*\}', text)
-
-            if json_match:
-                data = json.loads(json_match.group(0))
-                return data
-
-            return {"paa_questions": []}
-
-        except Exception as e:
-            st.error(f"Erreur extraction PAA: {str(e)}")
-            return {"paa_questions": []}
-
-def generate_paa_content(question_data, anthropic_key, brand_context=""):
-        """Génère un article SEO complet optimisé"""
-        client = anthropic.Anthropic(api_key=anthropic_key)
-
-        related_kw = ', '.join(question_data.get('related_keywords', [])[:5])
-        brand_text = f"CONTEXTE MARQUE: {brand_context}" if brand_context else ""
-
-        prompt = f"""Rédige un article SEO COMPLET, PROFESSIONNEL et OPTIMISÉ pour:
-
-    QUESTION: {question_data['question']}
-    TYPE: {question_data.get('content_type', 'Article')}
-    LONGUEUR: {question_data.get('target_length', '1500-2000 mots')}
-    MOTS-CLÉS: {related_kw}
-
-    {brand_text}
-
-    STRUCTURE OBLIGATOIRE:
-
-    # [Titre H1 optimisé avec la question principale]
-
-    **Meta Description (150-160 caractères):**
-    [Meta description accrocheuse et optimisée SEO]
-
-    ---
-
-    ## Introduction (100-150 mots)
-    [Intro engageante qui reformule la question, présente le problème et annonce la structure du contenu]
-
-    ---
-
-    ## Réponse Directe - En Bref
-    [Paragraphe de 50-75 mots répondant directement à la question. Format optimisé pour featured snippet]
-
-    **Points clés:**
-    - Point essentiel 1
-    - Point essentiel 2  
-    - Point essentiel 3
-
-    ---
-
-    ## [H2: Premier aspect principal]
-    ### [H3: Sous-section détaillée 1.1]
-    [Contenu détaillé et approfondi de 200-300 mots avec exemples concrets]
-
-    ### [H3: Sous-section détaillée 1.2]
-    [Contenu détaillé et approfondi de 200-300 mots avec exemples concrets]
-
-    ---
-
-    ## [H2: Deuxième aspect principal]
-    [Développement complet de 400-500 mots avec données, statistiques, conseils pratiques]
-
-    ---
-
-    ## [H2: Troisième aspect principal]  
-    [Cas pratiques, exemples réels, études de cas - 400-500 mots]
-
-    ---
-
-    ## [H2: Conseils Pratiques]
-    [Section actionnable avec conseils concrets]
-
-    ### [H3: Ce qu'il faut faire]
-    - Conseil 1 avec explication
-    - Conseil 2 avec explication
-    - Conseil 3 avec explication
-
-    ### [H3: Ce qu'il faut éviter]
-    - Erreur 1 à éviter
-    - Erreur 2 à éviter
-    - Erreur 3 à éviter
-
-    ---
-
-    ## Questions Fréquentes (FAQ)
-
-    ### Question 1 pertinente ?
-    [Réponse courte et précise de 50-75 mots]
-
-    ### Question 2 pertinente ?
-    [Réponse courte et précise de 50-75 mots]
-
-    ### Question 3 pertinente ?
-    [Réponse courte et précise de 50-75 mots]
-
-    ### Question 4 pertinente ?
-    [Réponse courte et précise de 50-75 mots]
-
-    ### Question 5 pertinente ?
-    [Réponse courte et précise de 50-75 mots]
-
-    ### Question 6 pertinente ?
-    [Réponse courte et précise de 50-75 mots]
-
-    ---
-
-    ## Points Clés à Retenir
-    - Point synthétique 1
-    - Point synthétique 2
-    - Point synthétique 3
-    - Point synthétique 4
-    - Point synthétique 5
-
-    ---
-
-    ## Conclusion
-    [Résumé en 100-150 mots + appel à l'action naturel et subtil]
-
-    ---
-
-    **MÉTADONNÉES SEO:**
-    - **Mots-clés principaux:** [liste de 3-5 mots-clés]
-    - **Mots-clés secondaires:** [liste de 10-15 mots-clés LSI]
-    - **Liens internes suggérés:** [3-5 ancres de liens avec contexte]
-    - **Images recommandées:** [3-5 descriptions d'images à créer]
-
-    ---
-
-    EXIGENCES:
-    - Contenu 100% original et unique
-    - Ton professionnel mais accessible
-    - Paragraphes courts (3-4 lignes max)
-    - Optimisé pour LLM et AI Overview
-    - Riche en informations concrètes
-    - Exemples et données chiffrées
-    - Aucun fluff, que du contenu utile"""
-
-        try:
-            message = client.messages.create(
-                model="claude-sonnet-4-5-20250929",
-                max_tokens=16000,
-                messages=[{"role": "user", "content": prompt}]
-            )
-
-            return message.content[0].text
-
-        except Exception as e:
-            return f"Erreur lors de la génération: {str(e)}"
-
-def generate_visual_guide(article_content, question, anthropic_key):
-        """Génère un guide visuel complet avec prompts IA"""
-        client = anthropic.Anthropic(api_key=anthropic_key)
-
-        content_sample = article_content[:1000]
-
-        prompt = f"""Crée un GUIDE VISUEL COMPLET et DÉTAILLÉ pour illustrer cet article:
-
-    QUESTION: {question}
-    CONTENU (extrait): {content_sample}
-
-    Format JSON requis:
-    {{
-      "hero_image": {{
-        "description": "Description détaillée de l'image principale",
-        "dalle_prompt": "Prompt ultra-détaillé pour DALL-E 3",
-        "midjourney_prompt": "Prompt optimisé pour Midjourney v6",
-        "dimensions": "1200x630px",
-        "alt_text": "ALT text SEO-optimized descriptif"
-      }},
-      "infographic": {{
-        "title": "Titre accrocheur de l'infographie",
-        "description": "Description complète",
-        "dalle_prompt": "Prompt DALL-E pour infographie",
-        "dimensions": "800x2000px",
-        "sections": ["Section 1", "Section 2", "Section 3"]
-      }},
-      "section_images": [
-        {{
-          "section": "Nom de la section H2",
-          "description": "Description de l'image",
-          "dalle_prompt": "Prompt détaillé et optimisé",
-          "alt_text": "ALT text descriptif",
-          "dimensions": "800x500px",
-          "image_type": "illustration"
-        }}
-      ],
-      "pinterest_pins": [
-        {{
-          "title": "Titre du pin vertical",
-          "dalle_prompt": "Prompt pour format vertical Pinterest",
-          "text_overlay": "Texte à superposer",
-          "dimensions": "1000x1500px"
-        }}
-      ]
-    }}
-
-    Réponds UNIQUEMENT avec le JSON."""
-
-        try:
-            message = client.messages.create(
-                model="claude-sonnet-4-5-20250929",
-                max_tokens=6000,
-                messages=[{"role": "user", "content": prompt}]
-            )
-
-            text = message.content[0].text
-            json_match = re.search(r'\{[\s\S]*\}', text)
-
-            if json_match:
-                return json.loads(json_match.group(0))
-
-            return {}
-
-        except Exception as e:
-            st.error(f"Erreur génération visuels: {str(e)}")
-            return {}
-
-def generate_internal_linking(articles_data, anthropic_key):
-        """Génère une stratégie de maillage interne intelligente"""
-        client = anthropic.Anthropic(api_key=anthropic_key)
-
-        articles_summary = []
-        for idx, article in enumerate(articles_data[:20]):
-            articles_summary.append({
-                'id': idx,
-                'question': article['question'],
-                'sample': article['content'][:300],
-                'priority': article['metadata'].get('priority', 'P2')
-            })
-
-        articles_json = json.dumps(articles_summary, ensure_ascii=False)[:4000]
-
-        prompt = f"""Crée une STRATÉGIE DE MAILLAGE INTERNE INTELLIGENTE pour {len(articles_summary)} articles:
-
-    {articles_json}
-
-    Format JSON requis:
-    {{
-      "silo_structure": [
-        {{
-          "silo_name": "Nom du silo thématique",
-          "pillar_page": {{
-            "id": 0,
-            "title": "Titre de la page pilier",
-            "why_pillar": "Raison"
-          }},
-          "cluster_pages": [1, 2, 3, 4]
-        }}
-      ],
-      "linking_matrix": [
-        {{
-          "from_id": 0,
-          "from_title": "Titre article source",
-          "links": [
-            {{
-              "to_id": 1,
-              "to_title": "Titre article cible",
-              "anchor_text": "Ancre naturelle",
-              "anchor_variations": ["Var 1", "Var 2"],
-              "context": "Phrase avec [ANCHOR]",
-              "placement": "Introduction",
-              "seo_value": "high",
-              "reasoning": "Raison"
-            }}
-          ]
-        }}
-      ],
-      "metrics": {{
-        "total_links": 0,
-        "avg_links_per_page": 0,
-        "silos_count": 0
-      }},
-      "recommendations": ["Recommandation 1", "Recommandation 2"]
-    }}
-
-    Réponds UNIQUEMENT avec le JSON."""
-
-        try:
-            message = client.messages.create(
-                model="claude-sonnet-4-5-20250929",
-                max_tokens=12000,
-                messages=[{"role": "user", "content": prompt}]
-            )
-
-            text = message.content[0].text
-            json_match = re.search(r'\{[\s\S]*\}', text)
-
-            if json_match:
-                return json.loads(json_match.group(0))
-
-            return {}
-
-        except Exception as e:
-            st.error(f"Erreur génération maillage: {str(e)}")
-            return {}
-
-def inject_internal_links(articles, linking_matrix):
-        """Injecte automatiquement les liens dans les articles"""
-
-        injected_articles = []
-        injection_stats = {
-            'total_injections': 0,
-            'articles_modified': 0,
-            'links_per_article': {}
-        }
-
-        for article_idx, article in enumerate(articles):
-            modified_content = article['content']
-            links_injected = 0
-
-            article_links = []
-            for link_group in linking_matrix:
-                if link_group.get('from_id') == article_idx:
-                    article_links = link_group.get('links', [])
-                    break
-
-            for link in article_links:
-                anchor = link.get('anchor_text', '')
-                context = link.get('context', '')
-                to_id = link.get('to_id')
-
-                if anchor and context:
-                    link_markdown = f"[{anchor}](#article-{to_id})"
-
-                    if '[ANCHOR]' in context:
-                        injected_context = context.replace('[ANCHOR]', link_markdown)
-                    else:
-                        injected_context = context.replace(anchor, link_markdown)
-
-                    placement = link.get('placement', 'Introduction')
-
-                    if 'introduction' in placement.lower():
-                        intro_end = modified_content.find('\n---\n', 200)
-                        if intro_end > 0:
-                            modified_content = (
-                                modified_content[:intro_end] +
-                                f"\n\n{injected_context}\n" +
-                                modified_content[intro_end:]
-                            )
-                            links_injected += 1
-                    else:
-                        conclusion_start = modified_content.rfind('## Conclusion')
-                        if conclusion_start > 0:
-                            modified_content = (
-                                modified_content[:conclusion_start] +
-                                f"\n\n{injected_context}\n\n" +
-                                modified_content[conclusion_start:]
-                            )
-                            links_injected += 1
-
-            if links_injected > 0:
-                injection_stats['articles_modified'] += 1
-                injection_stats['total_injections'] += links_injected
-                injection_stats['links_per_article'][article_idx] = links_injected
-
-            injected_articles.append({
-                **article,
-                'content': modified_content,
-                'links_injected': links_injected
-            })
-
-        return injected_articles, injection_stats
-
-def calculate_roi(articles_data, roi_params):
-        """Calcule le ROI détaillé de la production de contenu"""
-
-        num_articles = len(articles_data)
-        total_words = sum([len(a['content'].split()) for a in articles_data])
-
-        cost_per_article = roi_params.get('cost_per_article', 15.0)
-        total_cost = num_articles * cost_per_article
-
-        time_per_article_manual = roi_params.get('time_per_article', 3.0)
-        time_per_article_auto = 0.5
-
-        time_saved_hours = num_articles * (time_per_article_manual - time_per_article_auto)
-
-        hourly_rate = roi_params.get('hourly_rate', 50.0)
-        value_time_saved = time_saved_hours * hourly_rate
-
-        roi_percentage = ((value_time_saved - total_cost) / total_cost * 100) if total_cost > 0 else 0
-
-        avg_words_per_article = total_words // num_articles if num_articles > 0 else 0
-        cost_per_word = total_cost / total_words if total_words > 0 else 0
-
-        estimated_traffic_per_article = 500
-        estimated_conversion_rate = 0.02
-        estimated_value_per_conversion = 100
-
-        monthly_value = (
-            num_articles * 
-            estimated_traffic_per_article * 
-            estimated_conversion_rate * 
-            estimated_value_per_conversion
-        )
-
-        annual_value = monthly_value * 12
-
-        return {
-            'num_articles': num_articles,
-            'total_words': total_words,
-            'avg_words_per_article': avg_words_per_article,
-            'total_cost': total_cost,
-            'cost_per_article': cost_per_article,
-            'cost_per_word': cost_per_word,
-            'time_saved_hours': time_saved_hours,
-            'value_time_saved': value_time_saved,
-            'roi_percentage': roi_percentage,
-            'monthly_value_estimate': monthly_value,
-            'annual_value_estimate': annual_value,
-            'break_even_months': (total_cost / monthly_value) if monthly_value > 0 else 0
-        }
-
-def generate_client_report(articles_data, linking_data, roi_data, anthropic_key):
-        """Génère un rapport client professionnel"""
-        client = anthropic.Anthropic(api_key=anthropic_key)
-
-        summary = {
-            'total_articles': len(articles_data),
-            'total_words': sum([len(a['content'].split()) for a in articles_data]),
-            'articles_with_visuals': len([a for a in articles_data if a.get('visuals')]),
-            'total_links': linking_data.get('metrics', {}).get('total_links', 0),
-            'silos_count': linking_data.get('metrics', {}).get('silos_count', 0)
-        }
-
-        prompt = f"""Crée un RAPPORT CLIENT PROFESSIONNEL pour une livraison de contenu SEO:
-
-    DONNÉES DU PROJET:
-    - Articles générés: {summary['total_articles']}
-    - Mots totaux: {summary['total_words']}
-    - Articles avec visuels: {summary['articles_with_visuals']}
-    - Liens internes: {summary['total_links']}
-    - Silos thématiques: {summary['silos_count']}
-
-    ROI:
-    - Investissement total: {roi_data.get('total_cost', 0):.2f} euros
-    - Temps économisé: {roi_data.get('time_saved_hours', 0):.1f}h
-    - Valeur générée: {roi_data.get('value_time_saved', 0):.2f} euros
-    - ROI: {roi_data.get('roi_percentage', 0):.1f}%
-    - Valeur estimée annuelle: {roi_data.get('annual_value_estimate', 0):.0f} euros
-
-    Crée un rapport structuré avec:
-
-    # RAPPORT DE PRODUCTION SEO
-
-    ## 1. RÉSUMÉ EXÉCUTIF
-    [Synthèse en 3-4 paragraphes]
-
-    ## 2. LIVRABLES
-    ### 2.1 Contenu Produit
-    [Détails sur les articles]
-
-    ### 2.2 Visuels et Médias
-    [Détails sur les guides visuels]
-
-    ### 2.3 Maillage Interne
-    [Stratégie de liens]
-
-    ## 3. MÉTRIQUES ET PERFORMANCE
-    ### 3.1 Métriques de Production
-    [Tableaux de chiffres]
-
-    ### 3.2 ROI et Valeur
-    [Analyse financière]
-
-    ## 4. RECOMMANDATIONS
-    ### 4.1 Prochaines Étapes
-    [5-7 recommandations actionnables]
-
-    ### 4.2 Optimisations Futures
-    [Suggestions d'amélioration]
-
-    ## 5. PLAN D'ACTION
-    [Timeline et tâches concrètes]
-
-    Format: Markdown professionnel avec mise en forme."""
-
-        try:
-            message = client.messages.create(
-                model="claude-sonnet-4-5-20250929",
-                max_tokens=8000,
-                messages=[{"role": "user", "content": prompt}]
-            )
-
-            return message.content[0].text
-
-        except Exception as e:
-            return f"Erreur génération rapport: {str(e)}"
-
-
-def generate_dev_tickets(linking_data, articles_data):
-        """Génère des tickets de développement"""
-        tickets = []
-        total_links = linking_data.get('metrics', {}).get('total_links', 0)
-
-        ticket_links = f"""# TICKET DEV #001 - Injection Liens Internes
-
-    ## Priorité: HAUTE
-    ## Temps estimé: 4-6h
-
-    ## Description
-    Implémenter les {total_links} liens internes dans les {len(articles_data)} articles.
-
-    ## Acceptance Criteria
-    - [ ] Tous les liens insérés
-    - [ ] Ancres naturelles
-    - [ ] Tests effectués
-    """
-        tickets.append(ticket_links)
-        return tickets
-
-
-def chat_with_assistant(user_message, articles_data, linking_data, anthropic_key):
-        """Assistant IA conversationnel"""
-        client = anthropic.Anthropic(api_key=anthropic_key)
-
-        total_words = sum([len(a['content'].split()) for a in articles_data])
-
-        context = f"""Tu es un assistant SEO expert.
-
-    PROJET:
-    - {len(articles_data)} articles générés
-    - {total_words} mots au total
-
-    Réponds de manière claire et actionnable."""
-
-        messages = [{"role": "user", "content": context}]
-
-        for msg in st.session_state.chat_history[-6:]:
-            messages.append(msg)
-
-        messages.append({"role": "user", "content": user_message})
-
-        try:
-            message = client.messages.create(
-                model="claude-sonnet-4-5-20250929",
-                max_tokens=4000,
-                messages=messages
-            )
-
-            return message.content[0].text
-
-        except Exception as e:
-            return f"Erreur: {str(e)}"
-            # ============================================
-            # HEADER
-            # ============================================
-
-            st.markdown('<h1 class="main-header">SEO Intelligence Suite Pro</h1>', unsafe_allow_html=True)
-            st.markdown("""
-            <p style="text-align: center; color: #64748b; font-size: 1.2rem; margin-bottom: 2rem;">
-                <strong>Version 5.0 COMPLÈTE</strong> - Production • Visuels • Maillage • ROI • Rapports • Assistant IA
-            </p>
-            """, unsafe_allow_html=True)
-
-            # ============================================
-# SIDEBAR
+        'hourly_rate': 50.0
+    }
+
+# ============================================
+# FONCTIONS GEMINI
 # ============================================
 
-with st.sidebar:
-    st.markdown("## ⚙️ Configuration")
+def init_gemini(api_key):
+    """Initialise l'API Gemini"""
+    try:
+        genai.configure(api_key=api_key)
+        return True
+    except Exception as e:
+        st.error(f"Erreur initialisation Gemini: {str(e)}")
+        return False
+
+def generate_image_with_gemini(prompt, article_context=""):
+    """Génère une image avec Gemini Imagen"""
+    try:
+        if not st.session_state.gemini_key:
+            st.error("Clé API Gemini non configurée")
+            return None
+        
+        # Note: Gemini Imagen n'est pas encore disponible publiquement via l'API Python
+        # Pour l'instant, on génère un placeholder avec les specs
+        st.info("🎨 Génération d'image avec Gemini (Placeholder - API en développement)")
+        
+        # Créer une image placeholder
+        img = Image.new('RGB', (1024, 1024), color=(102, 126, 234))
+        buffer = io.BytesIO()
+        img.save(buffer, format='PNG')
+        buffer.seek(0)
+        
+        return {
+            'image_data': buffer,
+            'prompt': prompt,
+            'format': 'PNG',
+            'size': '1024x1024'
+        }
+        
+    except Exception as e:
+        st.error(f"Erreur génération image: {str(e)}")
+        return None
+
+def generate_image_prompts_with_claude(article_content, question, anthropic_key):
+    """Génère des prompts d'images optimisés avec Claude"""
+    client = anthropic.Anthropic(api_key=anthropic_key)
     
-    anthropic_key = st.text_input(
-        "🔑 Clé API Anthropic",
-        type="password",
-        value=st.session_state.anthropic_key or "",
-        help="Obtenez votre clé sur https://console.anthropic.com"
-    )
-    
-    if st.button("💾 Sauvegarder Configuration", type="primary", use_container_width=True):
-        if anthropic_key:
-            st.session_state.anthropic_key = anthropic_key
-            st.success("✅ Configuration sauvegardée !")
-        else:
-            st.error("❌ Clé Anthropic requise")
-    
-    st.markdown("---")
-    
-    # Statistiques
-    st.markdown("### 📊 Statistiques Session")
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        st.metric("📝 Articles", len(st.session_state.paa_content_generated))
-        st.metric("❓ Questions", len(st.session_state.paa_questions))
-    
-    with col2:
-        if st.session_state.paa_content_generated:
-            total_words = sum([len(a['content'].split()) for a in st.session_state.paa_content_generated])
-            st.metric("✍️ Mots", f"{total_words:,}")
+    prompt = f"""Analyse cet article SEO et génère 3 prompts optimisés pour créer des images avec Gemini Imagen.
+
+ARTICLE: {article_content[:2000]}
+QUESTION: {question}
+
+Pour chaque image, fournis:
+1. Un prompt détaillé et descriptif (en anglais)
+2. Le type d'image (illustration, infographie, photo-réaliste, diagramme)
+3. Le placement suggéré dans l'article
+
+Format JSON:
+{{
+  "image_prompts": [
+    {{
+      "prompt": "Detailed English prompt for Gemini Imagen",
+      "type": "illustration",
+      "placement": "Après l'introduction",
+      "alt_text": "Description pour SEO"
+    }}
+  ]
+}}
+
+Réponds UNIQUEMENT avec le JSON."""
+
+    try:
+        message = client.messages.create(
+            model="claude-sonnet-4-5-20250929",
+            max_tokens=2000,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        
+        text = message.content[0].text
+        json_match = re.search(r'\{[\s\S]*\}', text)
+        
+        if json_match:
+            data = json.loads(json_match.group(0))
+            return data.get('image_prompts', [])
+        
+        return []
+        
+    except Exception as e:
+        st.error(f"Erreur génération prompts: {str(e)}")
+        return []
+
+# ============================================
+# FONCTIONS GOOGLE WORKSPACE
+# ============================================
+
+def save_to_google_docs(content, title, creds):
+    """Sauvegarde le contenu dans Google Docs"""
+    try:
+        docs_service = build('docs', 'v1', credentials=creds)
+        drive_service = build('drive', 'v3', credentials=creds)
+        
+        # Créer le document
+        doc = docs_service.documents().create(body={'title': title}).execute()
+        doc_id = doc.get('documentId')
+        
+        # Ajouter le contenu
+        requests_body = [{
+            'insertText': {
+                'location': {'index': 1},
+                'text': content
+            }
+        }]
+        
+        docs_service.documents().batchUpdate(
+            documentId=doc_id,
+            body={'requests': requests_body}
+        ).execute()
+        
+        # Obtenir le lien
+        file = drive_service.files().get(fileId=doc_id, fields='webViewLink').execute()
+        
+        return {
+            'success': True,
+            'doc_id': doc_id,
+            'link': file.get('webViewLink')
+        }
+        
+    except Exception as e:
+        return {
+            'success': False,
+            'error': str(e)
+        }
+
+def save_images_to_drive(images, folder_name, creds):
+    """Sauvegarde les images dans Google Drive"""
+    try:
+        drive_service = build('drive', 'v3', credentials=creds)
+        
+        # Créer un dossier
+        folder_metadata = {
+            'name': folder_name,
+            'mimeType': 'application/vnd.google-apps.folder'
+        }
+        folder = drive_service.files().create(body=folder_metadata, fields='id').execute()
+        folder_id = folder.get('id')
+        
+        uploaded_files = []
+        
+        for idx, img_data in enumerate(images):
+            file_metadata = {
+                'name': f'image_{idx+1}.png',
+                'parents': [folder_id]
+            }
             
-            articles_with_visuals = len([a for a in st.session_state.paa_content_generated if a.get('visuals')])
-            st.metric("🎨 Visuels", articles_with_visuals)
+            media = MediaIoBaseUpload(
+                img_data['image_data'],
+                mimetype='image/png',
+                resumable=True
+            )
+            
+            file = drive_service.files().create(
+                body=file_metadata,
+                media_body=media,
+                fields='id,webViewLink'
+            ).execute()
+            
+            uploaded_files.append({
+                'file_id': file.get('id'),
+                'link': file.get('webViewLink')
+            })
+        
+        return {
+            'success': True,
+            'folder_id': folder_id,
+            'files': uploaded_files
+        }
+        
+    except Exception as e:
+        return {
+            'success': False,
+            'error': str(e)
+        }
+
+# ============================================
+# FONCTIONS CLAUDE (SEO)
+# ============================================
+
+def extract_paa_questions(keyword, anthropic_key, num=20):
+    """Extrait les questions PAA avec Claude"""
+    client = anthropic.Anthropic(api_key=anthropic_key)
     
-    st.markdown("---")
+    prompt = f"""Tu es un expert SEO. Génère {num} questions PAA (People Also Ask) réalistes et variées pour le mot-clé "{keyword}".
+
+Format JSON strict requis:
+{{
+  "paa_questions": [
+    {{
+      "question": "Question PAA complète et naturelle ?",
+      "priority": "P0",
+      "difficulty": "easy",
+      "search_intent": "informational",
+      "estimated_volume": "high",
+      "related_keywords": ["kw1", "kw2", "kw3"],
+      "content_type": "Article",
+      "content_angle": "Comment faire X",
+      "target_length": "1500-2000 words"
+    }}
+  ]
+}}
+
+Critères:
+- Questions variées (comment, pourquoi, quoi, combien, etc.)
+- Priorité: P0 (haute), P1 (moyenne), P2 (basse)
+- Difficulté: easy, medium, hard
+- Intent: informational, transactional, navigational
+- Volume: high, medium, low
+
+Réponds UNIQUEMENT avec le JSON, rien d'autre."""
+
+    try:
+        message = client.messages.create(
+            model="claude-sonnet-4-5-20250929",
+            max_tokens=8000,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        
+        text = message.content[0].text
+        json_match = re.search(r'\{[\s\S]*\}', text)
+        
+        if json_match:
+            data = json.loads(json_match.group(0))
+            return data
+        
+        return {"paa_questions": []}
+        
+    except Exception as e:
+        st.error(f"Erreur extraction PAA: {str(e)}")
+        return {"paa_questions": []}
+
+def generate_paa_content(question_data, anthropic_key, brand_context=""):
+    """Génère un article SEO optimisé"""
+    client = anthropic.Anthropic(api_key=anthropic_key)
     
-    # Modules
-    st.markdown("### 🎯 Modules Actifs")
-    st.markdown("""
-    - ✅ PAA Content Factory
-    - ✅ Génération Visuels IA
-    - ✅ Maillage Interne
-    - ✅ **Injection Auto Liens**
-    - ✅ **Calculateur ROI**
-    - ✅ **Rapports Clients**
-    - ✅ **Assistant IA Chat**
-    """)
+    prompt = f"""Tu es un expert rédacteur SEO. Rédige un article complet et optimisé pour cette question PAA.
+
+QUESTION: {question_data['question']}
+INTENT: {question_data.get('search_intent', 'informational')}
+KEYWORDS: {', '.join(question_data.get('related_keywords', []))}
+CONTEXTE MARQUE: {brand_context}
+
+L'article doit:
+- Être structuré avec des titres H2, H3
+- Contenir 1500-2500 mots
+- Inclure des listes à puces
+- Répondre directement à la question
+- Être optimisé SEO
+- Avoir un ton professionnel mais accessible
+
+Format Markdown."""
+
+    try:
+        message = client.messages.create(
+            model="claude-sonnet-4-5-20250929",
+            max_tokens=4000,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        
+        return message.content[0].text
+        
+    except Exception as e:
+        st.error(f"Erreur génération contenu: {str(e)}")
+        return "Erreur de génération"
+
+def generate_internal_linking(articles, anthropic_key):
+    """Génère des suggestions de maillage interne"""
+    client = anthropic.Anthropic(api_key=anthropic_key)
     
-    st.markdown("---")
+    articles_summary = "\n\n".join([
+        f"ARTICLE {i+1}: {a['question']}\nContenu: {a['content'][:500]}..."
+        for i, a in enumerate(articles[:10])
+    ])
     
-    # Paramètres ROI
-    if st.checkbox("⚙️ Paramètres ROI"):
+    prompt = f"""Analyse ces articles et génère une stratégie de maillage interne optimale.
+
+{articles_summary}
+
+Pour chaque article, suggère:
+- 2-4 liens internes vers d'autres articles
+- L'ancre exacte à utiliser
+- La position dans le texte
+
+Format JSON:
+{{
+  "linking_matrix": [
+    {{
+      "from_article": 0,
+      "to_article": 2,
+      "anchor_text": "texte de l'ancre",
+      "context": "phrase où insérer le lien"
+    }}
+  ]
+}}
+
+Réponds UNIQUEMENT avec le JSON."""
+
+    try:
+        message = client.messages.create(
+            model="claude-sonnet-4-5-20250929",
+            max_tokens=4000,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        
+        text = message.content[0].text
+        json_match = re.search(r'\{[\s\S]*\}', text)
+        
+        if json_match:
+            return json.loads(json_match.group(0))
+        
+        return {"linking_matrix": []}
+        
+    except Exception as e:
+        st.error(f"Erreur génération maillage: {str(e)}")
+        return {"linking_matrix": []}
+
+def inject_internal_links(articles, linking_matrix):
+    """Injecte les liens internes dans les articles"""
+    injected = articles.copy()
+    stats = {'total_injections': 0}
+    
+    for link in linking_matrix:
+        from_idx = link['from_article']
+        to_idx = link['to_article']
+        anchor = link['anchor_text']
+        
+        if from_idx < len(injected) and to_idx < len(injected):
+            target_article = injected[to_idx]['question']
+            link_md = f"[{anchor}](#{to_idx})"
+            
+            # Rechercher et remplacer l'ancre dans le contenu
+            if anchor in injected[from_idx]['content']:
+                injected[from_idx]['content'] = injected[from_idx]['content'].replace(
+                    anchor, link_md, 1
+                )
+                stats['total_injections'] += 1
+    
+    return injected, stats
+
+def calculate_roi(articles, roi_data):
+    """Calcule le ROI de la production de contenu"""
+    num_articles = len(articles)
+    
+    # Coûts traditionnels
+    traditional_cost = num_articles * roi_data['cost_per_article']
+    traditional_time = num_articles * roi_data['time_per_article']
+    
+    # Coûts avec l'outil (estimation)
+    tool_cost = num_articles * 0.50  # 0.50€ par article (API Claude)
+    tool_time = num_articles * 0.1  # 6 minutes par article
+    
+    # Économies
+    cost_saved = traditional_cost - tool_cost
+    time_saved = traditional_time - tool_time
+    value_saved = time_saved * roi_data['hourly_rate']
+    
+    roi_percentage = ((value_saved - tool_cost) / tool_cost) * 100 if tool_cost > 0 else 0
+    
+    return {
+        'num_articles': num_articles,
+        'traditional_cost': traditional_cost,
+        'tool_cost': tool_cost,
+        'cost_saved': cost_saved,
+        'traditional_time_hours': traditional_time,
+        'tool_time_hours': tool_time,
+        'time_saved_hours': time_saved,
+        'value_time_saved': value_saved,
+        'total_cost': tool_cost,
+        'roi_percentage': roi_percentage
+    }
+
+def generate_client_report(articles, linking_data, roi_data, anthropic_key):
+    """Génère un rapport client professionnel"""
+    client = anthropic.Anthropic(api_key=anthropic_key)
+    
+    summary = f"""Génère un rapport client professionnel pour cette production de contenu SEO:
+
+STATISTIQUES:
+- {len(articles)} articles générés
+- ROI: {roi_data['roi_percentage']:.1f}%
+- Économie: {roi_data['value_time_saved']:.0f}€
+- Temps économisé: {roi_data['time_saved_hours']:.1f}h
+- Liens internes: {len(linking_data.get('linking_matrix', []))}
+
+ARTICLES:
+{chr(10).join([f"- {a['question']}" for a in articles[:10]])}
+
+Le rapport doit inclure:
+1. Résumé exécutif
+2. Métriques clés
+3. Liste des articles avec stats
+4. Stratégie de maillage
+5. ROI détaillé
+6. Prochaines étapes
+
+Format Markdown professionnel."""
+
+    try:
+        message = client.messages.create(
+            model="claude-sonnet-4-5-20250929",
+            max_tokens=4000,
+            messages=[{"role": "user", "content": summary}]
+        )
+        
+        return message.content[0].text
+        
+    except Exception as e:
+        return f"# Rapport Client\n\nErreur de génération: {str(e)}"
+
+def chat_with_assistant(user_message, articles, linking_data, anthropic_key):
+    """Assistant IA pour questions sur le projet"""
+    client = anthropic.Anthropic(api_key=anthropic_key)
+    
+    context = f"""Tu es un assistant SEO expert. Tu as accès à ces données:
+
+ARTICLES GÉNÉRÉS: {len(articles)}
+LIENS INTERNES: {len(linking_data.get('linking_matrix', []))}
+
+Réponds à la question de l'utilisateur de manière concise et utile.
+
+QUESTION: {user_message}"""
+
+    try:
+        message = client.messages.create(
+            model="claude-sonnet-4-5-20250929",
+            max_tokens=1000,
+            messages=[{"role": "user", "content": context}]
+        )
+        
+        return message.content[0].text
+        
+    except Exception as e:
+        return f"Erreur: {str(e)}"
+
+# ============================================
+# INTERFACE PRINCIPALE
+# ============================================
+
+def main():
+    # Header avec animation
+    st.markdown('<h1 class="main-header">🚀 SEO Intelligence Suite Pro v6.0</h1>', unsafe_allow_html=True)
+    st.markdown('<p class="subtitle">✨ Génération de Contenu SEO Premium avec IA • Gemini Images • Google Workspace</p>', unsafe_allow_html=True)
+    
+    # SIDEBAR - Configuration
+    with st.sidebar:
+        st.markdown("### ⚙️ Configuration")
+        
+        # Clé Anthropic
+        anthropic_input = st.text_input(
+            "🔑 Clé API Anthropic (Claude)",
+            type="password",
+            value=st.session_state.get('anthropic_key', '') or '',
+            help="Obtenez votre clé sur console.anthropic.com"
+        )
+        
+        if anthropic_input:
+            st.session_state.anthropic_key = anthropic_input
+            st.success("✅ Claude connecté")
+        
+        # Clé Gemini
+        gemini_input = st.text_input(
+            "🎨 Clé API Gemini (Images)",
+            type="password",
+            value=st.session_state.get('gemini_key', '') or '',
+            help="Obtenez votre clé sur ai.google.dev"
+        )
+        
+        if gemini_input:
+            st.session_state.gemini_key = gemini_input
+            if init_gemini(gemini_input):
+                st.success("✅ Gemini connecté")
+        
+        st.markdown("---")
+        
+        # Stats en temps réel
+        if st.session_state.paa_content_generated:
+            st.markdown("### 📊 Stats en Temps Réel")
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                st.markdown(f"""
+                <div class="stat-card">
+                    <div class="stat-value">{len(st.session_state.paa_content_generated)}</div>
+                    <div class="stat-label">Articles</div>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            with col2:
+                images_count = len(st.session_state.generated_images)
+                st.markdown(f"""
+                <div class="stat-card">
+                    <div class="stat-value">{images_count}</div>
+                    <div class="stat-label">Images</div>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            # ROI Quick View
+            if st.session_state.paa_content_generated:
+                roi = calculate_roi(st.session_state.paa_content_generated, st.session_state.roi_data)
+                st.markdown(f"""
+                <div class="metric-card-pro" style="margin-top: 1rem;">
+                    <h4 style="margin: 0 0 0.5rem 0;">💰 ROI Rapide</h4>
+                    <div style="font-size: 2rem; font-weight: 800; color: #667eea;">{roi['roi_percentage']:.0f}%</div>
+                    <div style="color: #64748b; font-size: 0.9rem;">Économie: {roi['value_time_saved']:.0f}€</div>
+                </div>
+                """, unsafe_allow_html=True)
+        
+        st.markdown("---")
+        st.markdown("### 🎯 Paramètres ROI")
+        
         st.session_state.roi_data['cost_per_article'] = st.number_input(
-            "Coût/article (€)",
-            value=st.session_state.roi_data['cost_per_article'],
-            min_value=1.0,
+            "Coût article manuel (€)",
+            value=15.0,
+            min_value=0.0,
             step=1.0
         )
         
         st.session_state.roi_data['time_per_article'] = st.number_input(
-            "Temps manuel/article (h)",
-            value=st.session_state.roi_data['time_per_article'],
-            min_value=0.5,
+            "Temps article manuel (h)",
+            value=3.0,
+            min_value=0.0,
             step=0.5
         )
         
         st.session_state.roi_data['hourly_rate'] = st.number_input(
             "Taux horaire (€)",
-            value=st.session_state.roi_data['hourly_rate'],
-            min_value=10.0,
+            value=50.0,
+            min_value=0.0,
             step=5.0
         )
     
-    st.markdown("---")
+    # MAIN CONTENT
+    if not st.session_state.anthropic_key:
+        st.warning("⚠️ Veuillez configurer votre clé API Anthropic dans la sidebar")
+        st.info("👈 Cliquez sur la sidebar pour commencer")
+        st.stop()
     
-    # Actions rapides
-    if st.session_state.paa_content_generated:
-        st.markdown("### ⚡ Actions Rapides")
+    # TABS
+    tabs = st.tabs([
+        "🎯 Génération PAA",
+        "🎨 Visuels Gemini",
+        "🔗 Maillage Interne",
+        "📊 ROI & Analytics",
+        "📄 Rapports Client",
+        "💬 Assistant IA",
+        "☁️ Google Workspace"
+    ])
+    
+    # TAB 1: GÉNÉRATION PAA
+    with tabs[0]:
+        st.markdown("## 🎯 Extraction & Génération PAA")
         
-        if st.button("🗑️ Tout supprimer", type="secondary", use_container_width=True):
-            st.session_state.paa_content_generated = []
-            st.session_state.paa_questions = []
-            st.session_state.paa_selected = []
-            st.session_state.linking_suggestions = {}
-            st.success("✅ Données effacées")
-            st.rerun()
-            
-# Interface principale
-tabs = st.tabs([
-    "PAA Factory",
-    "Injection Liens", 
-    "ROI & Analytics",
-    "Rapports & Tickets",
-    "Assistant IA",
-    "Paramètres"
-])
-
-# TAB 1: PAA FACTORY
-with tabs[0]:
-    st.markdown("## PAA Content Factory")
-    
-    st.markdown("### ÉTAPE 1: Extraction des Questions PAA")
-    
-    col1, col2 = st.columns([3, 1])
-    
-    with col1:
-        paa_keyword = st.text_input(
-            "Mot-clé principal",
-            placeholder="Ex: marketing digital"
-        )
-    
-    with col2:
-        num_paa = st.number_input("Nombre", 5, 50, 20, 5)
-    
-    brand_context = st.text_area("Contexte marque (optionnel)", height=80)
-    
-    if st.button("EXTRAIRE LES QUESTIONS PAA", type="primary", use_container_width=True):
-        if not st.session_state.anthropic_key:
-            st.error("Configurez votre clé API")
-        elif not paa_keyword:
-            st.error("Entrez un mot-clé")
-        else:
-            with st.spinner("Extraction en cours..."):
-                paa_data = extract_paa_questions(paa_keyword, st.session_state.anthropic_key, num_paa)
-                st.session_state.paa_questions = paa_data.get('paa_questions', [])
-                st.session_state.paa_keyword = paa_keyword
-                st.session_state.paa_brand_context = brand_context
-                
-                if st.session_state.paa_questions:
-                    st.success(f"{len(st.session_state.paa_questions)} questions extraites !")
-                    time.sleep(0.5)
-                    st.rerun()
-    
-    if st.session_state.paa_questions:
-        st.markdown("---")
-        st.markdown("### ÉTAPE 2: Sélection")
+        col1, col2 = st.columns([2, 1])
         
-        col1, col2, col3, col4 = st.columns(4)
         with col1:
-            if st.button("✅ Tout sélectionner", use_container_width=True, key="select_all"):
-                st.session_state.paa_selected = list(range(len(st.session_state.paa_questions)))
-                st.rerun()
+            keyword = st.text_input(
+                "🔍 Mot-clé principal",
+                value=st.session_state.get('paa_keyword', ''),
+                placeholder="Ex: marketing digital",
+                help="Le mot-clé pour lequel générer des questions PAA"
+            )
+            st.session_state.paa_keyword = keyword
+        
         with col2:
-            if st.button("⬜ Désélectionner", use_container_width=True, key="deselect_all"):
-                st.session_state.paa_selected = []
-                st.rerun()
-        with col3:
-            if st.button("⭐ P0 seulement", use_container_width=True, key="select_p0"):
-                st.session_state.paa_selected = [i for i, q in enumerate(st.session_state.paa_questions) if q.get('priority') == 'P0']
-                st.rerun()
-        with col4:
-            if st.button("🌟 P0 + P1", use_container_width=True, key="select_p0p1"):
-                st.session_state.paa_selected = [i for i, q in enumerate(st.session_state.paa_questions) if q.get('priority') in ['P0', 'P1']]
-                st.rerun()
-# DEBUG
-        st.write(f"DEBUG: {len(st.session_state.paa_questions)} questions en mémoire")
-        st.write(f"DEBUG: Questions = {[q['question'][:50] for q in st.session_state.paa_questions[:3]]}")
+            num_questions = st.selectbox(
+                "📝 Nombre de questions",
+                options=[10, 20, 30, 50],
+                index=1
+            )
         
-        for idx, q in enumerate(st.session_state.paa_questions):
-            priority = q.get('priority', 'P2')
-            is_selected = idx in st.session_state.paa_selected
-            
-            if st.checkbox(f"{q['question']}", value=is_selected, key=f"sel_{idx}"):
-                if idx not in st.session_state.paa_selected:
-                    st.session_state.paa_selected.append(idx)
+        brand_context = st.text_area(
+            "🏢 Contexte de marque (optionnel)",
+            value=st.session_state.get('paa_brand_context', ''),
+            placeholder="Ex: Nous sommes une agence SEO spécialisée en e-commerce...",
+            height=100
+        )
+        st.session_state.paa_brand_context = brand_context
+        
+        if st.button("🚀 EXTRAIRE LES QUESTIONS PAA", type="primary", use_container_width=True):
+            if keyword:
+                with st.spinner("🔍 Extraction des questions PAA en cours..."):
+                    data = extract_paa_questions(keyword, st.session_state.anthropic_key, num_questions)
+                    st.session_state.paa_questions = data.get('paa_questions', [])
+                    
+                if st.session_state.paa_questions:
+                    st.success(f"✅ {len(st.session_state.paa_questions)} questions extraites!")
+                    st.rerun()
             else:
-                if idx in st.session_state.paa_selected:
-                    st.session_state.paa_selected.remove(idx)
+                st.warning("⚠️ Veuillez entrer un mot-clé")
         
-if st.session_state.paa_selected:
-    st.markdown("---")
-    st.success(f"{len(st.session_state.paa_selected)} question(s) sélectionnée(s)")
-    
-    if st.button(f"GÉNÉRER {len(st.session_state.paa_selected)} ARTICLES", type="primary", use_container_width=True):
-        progress_bar = st.progress(0)
-        
-        for i, idx in enumerate(st.session_state.paa_selected):
-            question_data = st.session_state.paa_questions[idx]
+        # Affichage des questions
+        if st.session_state.paa_questions:
+            st.markdown("---")
+            st.markdown("### 📋 Questions PAA Extraites")
             
-            content = generate_paa_content(
-                question_data,
-                st.session_state.anthropic_key,
-                st.session_state.get('paa_brand_context', '')
+            # Filtres rapides
+            col1, col2, col3, col4 = st.columns(4)
+            
+            with col1:
+                if st.button("✅ Tout Sélectionner", use_container_width=True):
+                    st.session_state.paa_selected = list(range(len(st.session_state.paa_questions)))
+                    st.rerun()
+            
+            with col2:
+                if st.button("❌ Tout Désélectionner", use_container_width=True):
+                    st.session_state.paa_selected = []
+                    st.rerun()
+            
+            with col3:
+                if st.button("🔥 P0 Seulement", use_container_width=True):
+                    st.session_state.paa_selected = [
+                        i for i, q in enumerate(st.session_state.paa_questions)
+                        if q.get('priority') == 'P0'
+                    ]
+                    st.rerun()
+            
+            with col4:
+                if st.button("⭐ P0 + P1", use_container_width=True):
+                    st.session_state.paa_selected = [
+                        i for i, q in enumerate(st.session_state.paa_questions)
+                        if q.get('priority') in ['P0', 'P1']
+                    ]
+                    st.rerun()
+            
+            st.markdown("<br>", unsafe_allow_html=True)
+            
+            # Liste des questions
+            for idx, q in enumerate(st.session_state.paa_questions):
+                priority = q.get('priority', 'P2')
+                difficulty = q.get('difficulty', 'medium')
+                intent = q.get('search_intent', 'informational')
+                
+                is_selected = idx in st.session_state.paa_selected
+                
+                col1, col2 = st.columns([4, 1])
+                
+                with col1:
+                    if st.checkbox(
+                        f"**{q['question']}**",
+                        value=is_selected,
+                        key=f"sel_{idx}"
+                    ):
+                        if idx not in st.session_state.paa_selected:
+                            st.session_state.paa_selected.append(idx)
+                    else:
+                        if idx in st.session_state.paa_selected:
+                            st.session_state.paa_selected.remove(idx)
+                
+                with col2:
+                    tag_class = f"tag-{priority.lower()}"
+                    st.markdown(
+                        f'<span class="tag {tag_class}">{priority}</span> '
+                        f'<span class="tag">{difficulty}</span> '
+                        f'<span class="tag">{intent[:4]}</span>',
+                        unsafe_allow_html=True
+                    )
+            
+            # Bouton de génération
+            if st.session_state.paa_selected:
+                st.markdown("---")
+                col1, col2, col3 = st.columns([2, 2, 1])
+                
+                with col1:
+                    st.success(f"✅ {len(st.session_state.paa_selected)} question(s) sélectionnée(s)")
+                
+                with col2:
+                    if st.button(
+                        f"🚀 GÉNÉRER {len(st.session_state.paa_selected)} ARTICLES",
+                        type="primary",
+                        use_container_width=True
+                    ):
+                        progress_bar = st.progress(0)
+                        status_text = st.empty()
+                        
+                        for i, idx in enumerate(st.session_state.paa_selected):
+                            question_data = st.session_state.paa_questions[idx]
+                            
+                            status_text.text(f"⏳ Génération article {i+1}/{len(st.session_state.paa_selected)}...")
+                            
+                            content = generate_paa_content(
+                                question_data,
+                                st.session_state.anthropic_key,
+                                st.session_state.get('paa_brand_context', '')
+                            )
+                            
+                            st.session_state.paa_content_generated.append({
+                                'question': question_data['question'],
+                                'content': content,
+                                'metadata': question_data,
+                                'timestamp': datetime.now().isoformat(),
+                                'keyword': st.session_state.get('paa_keyword', '')
+                            })
+                            
+                            progress_bar.progress((i + 1) / len(st.session_state.paa_selected))
+                            time.sleep(0.3)
+                        
+                        status_text.empty()
+                        st.success("✅ Tous les articles ont été générés!")
+                        st.session_state.paa_selected = []
+                        st.rerun()
+        
+        # Affichage des articles générés
+        if st.session_state.paa_content_generated:
+            st.markdown("---")
+            st.markdown("### 📚 Articles Générés")
+            
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                if st.button("📥 Télécharger Tout (MD)", use_container_width=True):
+                    date_str = datetime.now().strftime('%Y%m%d_%H%M')
+                    all_content = "\n\n---\n\n".join([
+                        f"# ARTICLE {i+1}\n\n## {a['question']}\n\n{a['content']}"
+                        for i, a in enumerate(st.session_state.paa_content_generated)
+                    ])
+                    st.download_button(
+                        "📥 Télécharger",
+                        data=all_content,
+                        file_name=f"articles_{date_str}.md",
+                        mime="text/markdown"
+                    )
+            
+            with col2:
+                total_words = sum([
+                    len(a['content'].split())
+                    for a in st.session_state.paa_content_generated
+                ])
+                st.metric("📝 Mots Total", f"{total_words:,}")
+            
+            with col3:
+                st.metric("📄 Articles", len(st.session_state.paa_content_generated))
+            
+            st.markdown("<br>", unsafe_allow_html=True)
+            
+            # Liste des articles
+            for idx, article in enumerate(st.session_state.paa_content_generated):
+                with st.expander(
+                    f"📄 Article #{idx+1}: {article['question'][:70]}...",
+                    expanded=False
+                ):
+                    st.markdown(article['content'])
+                    
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.download_button(
+                            "📥 Télécharger",
+                            data=article['content'],
+                            file_name=f"article_{idx+1}.md",
+                            mime="text/markdown",
+                            key=f"dl_{idx}",
+                            use_container_width=True
+                        )
+                    
+                    with col2:
+                        word_count = len(article['content'].split())
+                        st.info(f"📝 {word_count} mots")
+    
+    # TAB 2: VISUELS GEMINI
+    with tabs[1]:
+        st.markdown("## 🎨 Génération de Visuels avec Gemini")
+        
+        if not st.session_state.gemini_key:
+            st.warning("⚠️ Veuillez configurer votre clé API Gemini dans la sidebar")
+        elif not st.session_state.paa_content_generated:
+            st.info("📝 Générez d'abord du contenu dans l'onglet 'Génération PAA'")
+        else:
+            st.markdown("""
+            <div class="metric-card-pro">
+                <h3>✨ Gemini Imagen</h3>
+                <p>Générez automatiquement des images optimisées pour chaque article avec Google Gemini.</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            st.markdown("<br>", unsafe_allow_html=True)
+            
+            # Génération globale
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                if st.button(
+                    "🎨 GÉNÉRER TOUTES LES IMAGES",
+                    type="primary",
+                    use_container_width=True
+                ):
+                    progress_bar = st.progress(0)
+                    status_text = st.empty()
+                    
+                    for i, article in enumerate(st.session_state.paa_content_generated):
+                        status_text.text(f"🎨 Génération images pour article {i+1}...")
+                        
+                        # Générer les prompts avec Claude
+                        prompts = generate_image_prompts_with_claude(
+                            article['content'],
+                            article['question'],
+                            st.session_state.anthropic_key
+                        )
+                        
+                        # Générer les images avec Gemini
+                        images = []
+                        for prompt_data in prompts[:3]:  # Max 3 images par article
+                            img_result = generate_image_with_gemini(
+                                prompt_data['prompt'],
+                                article['content'][:500]
+                            )
+                            if img_result:
+                                images.append({
+                                    **img_result,
+                                    **prompt_data
+                                })
+                        
+                        if images:
+                            st.session_state.generated_images[i] = images
+                        
+                        progress_bar.progress((i + 1) / len(st.session_state.paa_content_generated))
+                        time.sleep(0.5)
+                    
+                    status_text.empty()
+                    st.success("✅ Toutes les images ont été générées!")
+                    st.rerun()
+            
+            with col2:
+                total_images = sum([
+                    len(imgs) for imgs in st.session_state.generated_images.values()
+                ])
+                st.metric("🖼️ Images Générées", total_images)
+            
+            # Affichage des images par article
+            if st.session_state.generated_images:
+                st.markdown("---")
+                st.markdown("### 🖼️ Galerie d'Images")
+                
+                for article_idx, images in st.session_state.generated_images.items():
+                    if article_idx < len(st.session_state.paa_content_generated):
+                        article = st.session_state.paa_content_generated[article_idx]
+                        
+                        with st.expander(
+                            f"🖼️ Images pour: {article['question'][:60]}...",
+                            expanded=True
+                        ):
+                            cols = st.columns(min(len(images), 3))
+                            
+                            for i, img_data in enumerate(images):
+                                with cols[i % 3]:
+                                    # Note: Placeholder car Gemini Imagen n'est pas encore public
+                                    st.info(f"🎨 Image {i+1}")
+                                    st.markdown(f"**Prompt:** {img_data['prompt'][:100]}...")
+                                    st.markdown(f"**Type:** {img_data.get('type', 'N/A')}")
+                                    st.markdown(f"**Placement:** {img_data.get('placement', 'N/A')}")
+                                    st.markdown(f"**Alt Text:** {img_data.get('alt_text', 'N/A')}")
+            else:
+                st.info("📸 Aucune image générée pour le moment")
+    
+    # TAB 3: MAILLAGE INTERNE
+    with tabs[2]:
+        st.markdown("## 🔗 Maillage Interne Automatique")
+        
+        if not st.session_state.paa_content_generated:
+            st.info("📝 Générez d'abord du contenu")
+        else:
+            st.markdown("""
+            <div class="metric-card-pro">
+                <h3>🕸️ Stratégie de Maillage</h3>
+                <p>Optimisez votre SEO avec un maillage interne intelligent généré automatiquement.</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            st.markdown("<br>", unsafe_allow_html=True)
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                if st.button(
+                    "🔗 GÉNÉRER MAILLAGE",
+                    type="primary",
+                    use_container_width=True
+                ):
+                    with st.spinner("🔍 Analyse des articles et génération du maillage..."):
+                        linking = generate_internal_linking(
+                            st.session_state.paa_content_generated,
+                            st.session_state.anthropic_key
+                        )
+                        st.session_state.linking_suggestions = linking
+                        st.success("✅ Maillage généré!")
+                        st.rerun()
+            
+            with col2:
+                if st.session_state.linking_suggestions:
+                    links_count = len(st.session_state.linking_suggestions.get('linking_matrix', []))
+                    st.metric("🔗 Liens Suggérés", links_count)
+            
+            # Affichage du maillage
+            if st.session_state.linking_suggestions:
+                linking_matrix = st.session_state.linking_suggestions.get('linking_matrix', [])
+                
+                if linking_matrix:
+                    st.markdown("---")
+                    st.markdown("### 🕸️ Matrice de Maillage")
+                    
+                    for link in linking_matrix[:20]:  # Top 20
+                        from_idx = link['from_article']
+                        to_idx = link['to_article']
+                        
+                        if from_idx < len(st.session_state.paa_content_generated) and \
+                           to_idx < len(st.session_state.paa_content_generated):
+                            
+                            from_article = st.session_state.paa_content_generated[from_idx]
+                            to_article = st.session_state.paa_content_generated[to_idx]
+                            
+                            st.markdown(f"""
+                            <div class="metric-card-pro" style="margin-bottom: 1rem;">
+                                <div style="display: flex; align-items: center; gap: 1rem;">
+                                    <div style="flex: 1;">
+                                        <strong>De:</strong> {from_article['question'][:50]}...
+                                    </div>
+                                    <div style="font-size: 1.5rem;">→</div>
+                                    <div style="flex: 1;">
+                                        <strong>Vers:</strong> {to_article['question'][:50]}...
+                                    </div>
+                                </div>
+                                <div style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid #e2e8f0;">
+                                    <strong>Ancre:</strong> <code>{link['anchor_text']}</code>
+                                </div>
+                            </div>
+                            """, unsafe_allow_html=True)
+                    
+                    # Injection des liens
+                    st.markdown("---")
+                    
+                    if st.button(
+                        "⚡ INJECTER TOUS LES LIENS",
+                        type="primary",
+                        use_container_width=True
+                    ):
+                        with st.spinner("💉 Injection des liens en cours..."):
+                            injected_articles, stats = inject_internal_links(
+                                st.session_state.paa_content_generated,
+                                linking_matrix
+                            )
+                            st.session_state.paa_content_generated = injected_articles
+                            st.session_state.links_injected = True
+                            st.success(f"✅ {stats['total_injections']} liens injectés!")
+                            st.rerun()
+    
+    # TAB 4: ROI & ANALYTICS
+    with tabs[3]:
+        st.markdown("## 📊 ROI & Analytics")
+        
+        if st.session_state.paa_content_generated:
+            roi_data = calculate_roi(
+                st.session_state.paa_content_generated,
+                st.session_state.roi_data
             )
             
-            st.session_state.paa_content_generated.append({
-                'question': question_data['question'],
-                'content': content,
-                'metadata': question_data,
-                'timestamp': datetime.now().isoformat(),
-                'keyword': st.session_state.get('paa_keyword', '')
-            })
+            # Métriques principales
+            col1, col2, col3, col4 = st.columns(4)
             
-            progress_bar.progress((i + 1) / len(st.session_state.paa_selected))
-            time.sleep(0.5)
+            with col1:
+                st.markdown(f"""
+                <div class="stat-card">
+                    <div class="stat-label">ROI</div>
+                    <div class="stat-value">{roi_data['roi_percentage']:.0f}%</div>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            with col2:
+                st.markdown(f"""
+                <div class="stat-card">
+                    <div class="stat-label">Économie</div>
+                    <div class="stat-value">{roi_data['value_time_saved']:,.0f}€</div>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            with col3:
+                st.markdown(f"""
+                <div class="stat-card">
+                    <div class="stat-label">Investissement</div>
+                    <div class="stat-value">{roi_data['total_cost']:.0f}€</div>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            with col4:
+                st.markdown(f"""
+                <div class="stat-card">
+                    <div class="stat-label">Temps Économisé</div>
+                    <div class="stat-value">{roi_data['time_saved_hours']:.1f}h</div>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            st.markdown("<br>", unsafe_allow_html=True)
+            
+            # Détails du ROI
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.markdown("""
+                <div class="metric-card-pro">
+                    <h3>📈 Méthode Traditionnelle</h3>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                st.metric("💰 Coût Total", f"{roi_data['traditional_cost']:.0f}€")
+                st.metric("⏱️ Temps Total", f"{roi_data['traditional_time_hours']:.1f}h")
+                st.metric("📄 Articles", roi_data['num_articles'])
+            
+            with col2:
+                st.markdown("""
+                <div class="metric-card-pro">
+                    <h3>🚀 Avec SEO Suite Pro</h3>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                st.metric("💰 Coût Total", f"{roi_data['tool_cost']:.0f}€")
+                st.metric("⏱️ Temps Total", f"{roi_data['tool_time_hours']:.1f}h")
+                st.metric("📄 Articles", roi_data['num_articles'])
+        else:
+            st.info("📝 Générez du contenu pour voir les analytics")
+    
+    # TAB 5: RAPPORTS CLIENT
+    with tabs[4]:
+        st.markdown("## 📄 Rapports Client Professionnels")
         
-        st.success("Articles générés !")
-        st.session_state.paa_selected = []
-        st.rerun()
-
-if st.session_state.paa_content_generated:
+        if not st.session_state.paa_content_generated:
+            st.info("📝 Générez d'abord du contenu")
+        else:
+            if st.button(
+                "📋 GÉNÉRER RAPPORT CLIENT",
+                type="primary",
+                use_container_width=True
+            ):
+                with st.spinner("📄 Génération du rapport..."):
+                    roi_data = calculate_roi(
+                        st.session_state.paa_content_generated,
+                        st.session_state.roi_data
+                    )
+                    report = generate_client_report(
+                        st.session_state.paa_content_generated,
+                        st.session_state.linking_suggestions,
+                        roi_data,
+                        st.session_state.anthropic_key
+                    )
+                    st.session_state['last_report'] = report
+                    st.success("✅ Rapport généré!")
+            
+            if 'last_report' in st.session_state:
+                st.markdown("---")
+                st.markdown(st.session_state['last_report'])
+                
+                date_str = datetime.now().strftime('%Y%m%d_%H%M')
+                st.download_button(
+                    "📥 Télécharger Rapport (MD)",
+                    data=st.session_state['last_report'],
+                    file_name=f"rapport_client_{date_str}.md",
+                    mime="text/markdown",
+                    use_container_width=True
+                )
+    
+    # TAB 6: ASSISTANT IA
+    with tabs[5]:
+        st.markdown("## 💬 Assistant IA SEO")
+        
+        if not st.session_state.paa_content_generated:
+            st.info("📝 Générez d'abord du contenu pour utiliser l'assistant")
+        else:
+            st.markdown("""
+            <div class="metric-card-pro">
+                <h3>🤖 Assistant Intelligent</h3>
+                <p>Posez des questions sur votre projet, obtenez des conseils SEO, ou demandez des modifications.</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            st.markdown("<br>", unsafe_allow_html=True)
+            
+            # Historique
+            for msg in st.session_state.chat_history:
+                role = msg['role']
+                content = msg['content']
+                
+                if role == 'user':
+                    st.markdown(f"""
+                    <div class="metric-card-pro" style="background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);">
+                        <strong>👤 Vous:</strong><br>{content}
+                    </div>
+                    """, unsafe_allow_html=True)
+                else:
+                    st.markdown(f"""
+                    <div class="metric-card-pro" style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);">
+                        <strong>🤖 Assistant:</strong><br>{content}
+                    </div>
+                    """, unsafe_allow_html=True)
+                
+                st.markdown("<br>", unsafe_allow_html=True)
+            
+            # Input
+            user_input = st.text_area(
+                "💬 Votre message",
+                height=100,
+                placeholder="Ex: Peux-tu me donner des conseils pour optimiser le maillage interne ?"
+            )
+            
+            if st.button("📤 ENVOYER", type="primary", use_container_width=True):
+                if user_input:
+                    st.session_state.chat_history.append({
+                        'role': 'user',
+                        'content': user_input
+                    })
+                    
+                    with st.spinner("🤔 Réflexion..."):
+                        response = chat_with_assistant(
+                            user_input,
+                            st.session_state.paa_content_generated,
+                            st.session_state.linking_suggestions,
+                            st.session_state.anthropic_key
+                        )
+                    
+                    st.session_state.chat_history.append({
+                        'role': 'assistant',
+                        'content': response
+                    })
+                    
+                    st.rerun()
+    
+    # TAB 7: GOOGLE WORKSPACE
+    with tabs[6]:
+        st.markdown("## ☁️ Intégration Google Workspace")
+        
+        st.markdown("""
+        <div class="metric-card-pro">
+            <h3>📁 Sauvegarde Automatique</h3>
+            <p>Sauvegardez vos articles dans Google Docs et vos images dans Google Drive.</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        st.markdown("<br>", unsafe_allow_html=True)
+        
+        # Note: L'authentification OAuth Google nécessite une configuration serveur
+        # Pour une démo locale, on affiche juste l'interface
+        
+        st.info("⚠️ **Note:** L'authentification Google OAuth nécessite une configuration serveur complète.")
+        
+        st.markdown("""
+        ### 🔐 Configuration OAuth
+        
+        Pour activer l'intégration Google Workspace:
+        
+        1. **Créez un projet Google Cloud**
+           - Allez sur [Google Cloud Console](https://console.cloud.google.com/)
+           - Créez un nouveau projet
+        
+        2. **Activez les APIs**
+           - Google Docs API
+           - Google Drive API
+        
+        3. **Créez des credentials OAuth 2.0**
+           - Type: Application Web
+           - Ajoutez les URIs de redirection
+        
+        4. **Téléchargez le fichier credentials.json**
+           - Placez-le dans le dossier de l'application
+        """)
+        
+        if st.session_state.paa_content_generated:
+            st.markdown("---")
+            st.markdown("### 📤 Actions Disponibles")
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                if st.button(
+                    "📄 Sauvegarder dans Google Docs",
+                    use_container_width=True,
+                    disabled=True
+                ):
+                    st.info("Configuration OAuth requise")
+            
+            with col2:
+                if st.button(
+                    "🖼️ Sauvegarder Images dans Drive",
+                    use_container_width=True,
+                    disabled=True
+                ):
+                    st.info("Configuration OAuth requise")
+            
+            st.markdown("""
+            <div class="metric-card-pro" style="margin-top: 1rem;">
+                <h4>✨ Fonctionnalités à venir:</h4>
+                <ul>
+                    <li>✅ Export automatique vers Google Docs</li>
+                    <li>✅ Upload d'images dans Google Drive</li>
+                    <li>✅ Organisation automatique en dossiers</li>
+                    <li>✅ Partage de liens directs</li>
+                    <li>✅ Synchronisation en temps réel</li>
+                </ul>
+            </div>
+            """, unsafe_allow_html=True)
+    
+    # FOOTER
     st.markdown("---")
-    st.markdown("### Articles Générés")
-    
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        if st.button("Générer Visuels", use_container_width=True):
-            with st.spinner("Génération visuels..."):
-                for article in st.session_state.paa_content_generated:
-                    if 'visuals' not in article:
-                        visuals = generate_visual_guide(article['content'], article['question'], st.session_state.anthropic_key)
-                        article['visuals'] = visuals
-                st.success("Visuels générés !")
-                st.rerun()
-    
-    with col2:
-        if st.button("Générer Maillage", use_container_width=True):
-            with st.spinner("Génération maillage..."):
-                linking = generate_internal_linking(st.session_state.paa_content_generated, st.session_state.anthropic_key)
-                st.session_state.linking_suggestions = linking
-                st.success("Maillage généré !")
-                st.rerun()
-        
-        with col3:
-            date_str = datetime.now().strftime('%Y%m%d')
-            all_content = "\n\n".join([f"# ARTICLE {i+1}\n\n{a['content']}" for i, a in enumerate(st.session_state.paa_content_generated)])
-            st.download_button("Télécharger TOUT", data=all_content, file_name=f"articles_{date_str}.md", mime="text/markdown", use_container_width=True)
-        
-        for idx, article in enumerate(st.session_state.paa_content_generated):
-            with st.expander(f"Article #{idx+1}: {article['question'][:60]}...", expanded=(idx==len(st.session_state.paa_content_generated)-1)):
-                st.markdown(article['content'])
-                st.download_button("Télécharger", data=article['content'], file_name=f"article_{idx+1}.md", mime="text/markdown", key=f"dl_{idx}")
+    st.markdown("""
+    <div style='text-align: center; padding: 3rem 0 2rem 0;'>
+        <h2 style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                   -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+                   font-weight: 800; margin-bottom: 0.5rem;'>
+            SEO Intelligence Suite Pro v6.0
+        </h2>
+        <p style='color: #64748b; font-size: 1.1rem; margin: 0;'>
+            🚀 Production Automatisée de Contenu SEO Premium
+        </p>
+        <p style='color: #94a3b8; font-size: 0.9rem; margin-top: 0.5rem;'>
+            Powered by Claude 4 • Gemini • Google Workspace
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
 
-# TAB 2: INJECTION
-with tabs[1]:
-    st.markdown("## Injection Automatique des Liens")
-    
-    if not st.session_state.paa_content_generated:
-        st.info("Générez d'abord du contenu")
-    elif not st.session_state.linking_suggestions:
-        st.warning("Générez d'abord le maillage interne")
-    else:
-        if st.button("INJECTER TOUS LES LIENS", type="primary", use_container_width=True):
-            with st.spinner("Injection..."):
-                linking_matrix = st.session_state.linking_suggestions.get('linking_matrix', [])
-                injected_articles, stats = inject_internal_links(st.session_state.paa_content_generated, linking_matrix)
-                st.session_state.paa_content_generated = injected_articles
-                st.session_state.links_injected = True
-                st.success(f"Injection terminée ! {stats['total_injections']} liens injectés")
-                st.rerun()
-
-# TAB 3: ROI
-with tabs[2]:
-    st.markdown("## ROI & Analytics")
-    
-    if st.session_state.paa_content_generated:
-        roi_data = calculate_roi(st.session_state.paa_content_generated, st.session_state.roi_data)
-        
-        col1, col2, col3, col4 = st.columns(4)
-        with col1:
-            st.metric("ROI", f"{roi_data['roi_percentage']:.1f}%")
-        with col2:
-            st.metric("Valeur Générée", f"{roi_data['value_time_saved']:,.0f}€")
-        with col3:
-            st.metric("Investissement", f"{roi_data['total_cost']:.0f}€")
-        with col4:
-            st.metric("Temps Économisé", f"{roi_data['time_saved_hours']:.1f}h")
-    else:
-        st.info("Générez du contenu pour voir le ROI")
-
-# TAB 4: RAPPORTS
-with tabs[3]:
-    st.markdown("## Rapports & Tickets")
-    
-    if st.session_state.paa_content_generated:
-        if st.button("GÉNÉRER RAPPORT CLIENT", type="primary"):
-            with st.spinner("Génération rapport..."):
-                roi_data = calculate_roi(st.session_state.paa_content_generated, st.session_state.roi_data)
-                report = generate_client_report(st.session_state.paa_content_generated, st.session_state.linking_suggestions, roi_data, st.session_state.anthropic_key)
-                st.session_state['last_report'] = report
-                st.success("Rapport généré !")
-        
-        if 'last_report' in st.session_state:
-            st.markdown(st.session_state['last_report'])
-            date_str = datetime.now().strftime('%Y%m%d')
-            st.download_button("Télécharger Rapport", data=st.session_state['last_report'], file_name=f"rapport_{date_str}.md", mime="text/markdown")
-    else:
-        st.info("Générez du contenu d'abord")
-
-# TAB 5: ASSISTANT
-with tabs[4]:
-    st.markdown("## Assistant IA")
-    
-    if st.session_state.paa_content_generated:
-        for msg in st.session_state.chat_history:
-            role = msg['role']
-            content = msg['content']
-            if role == 'user':
-                st.markdown(f"**Vous:** {content}")
-            else:
-                st.markdown(f"**Assistant:** {content}")
-        
-        user_input = st.text_area("Votre message", height=100)
-        
-        if st.button("ENVOYER", type="primary"):
-            if user_input:
-                st.session_state.chat_history.append({'role': 'user', 'content': user_input})
-                response = chat_with_assistant(user_input, st.session_state.paa_content_generated, st.session_state.linking_suggestions, st.session_state.anthropic_key)
-                st.session_state.chat_history.append({'role': 'assistant', 'content': response})
-                st.rerun()
-    else:
-        st.info("Générez du contenu d'abord")
-
-# TAB 6: PARAMÈTRES
-with tabs[5]:
-    st.markdown("## Paramètres")
-    
-    if st.button("Supprimer Tous les Articles", type="secondary"):
-        if st.checkbox("Confirmer"):
-            st.session_state.paa_content_generated = []
-            st.session_state.linking_suggestions = {}
-            st.session_state.links_injected = False
-            st.success("Articles supprimés")
-            st.rerun()
-
-# FOOTER
-st.markdown("---")
-st.markdown("""
-<div style='text-align: center; padding: 2rem;'>
-    <h3>SEO Intelligence Suite Pro v5.0</h3>
-    <p>Production Automatisée de Contenu SEO Premium</p>
-</div>
-""", unsafe_allow_html=True)
+if __name__ == "__main__":
+    main()
