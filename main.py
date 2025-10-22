@@ -295,10 +295,17 @@ st.markdown("""
 # ============================================
 
 if 'anthropic_key' not in st.session_state:
-    st.session_state.anthropic_key = None
+    try:
+        # Essayer de charger depuis Streamlit Secrets
+        st.session_state.anthropic_key = st.secrets.get("anthropic_key", None)
+    except:
+        st.session_state.anthropic_key = None
 
 if 'gemini_key' not in st.session_state:
-    st.session_state.gemini_key = None
+    try:
+        st.session_state.gemini_key = st.secrets.get("gemini_key", None)
+    except:
+        st.session_state.gemini_key = None
 
 if 'google_creds' not in st.session_state:
     st.session_state.google_creds = None
