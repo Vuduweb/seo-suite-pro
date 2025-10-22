@@ -887,16 +887,16 @@ def main():
         st.info("👈 Cliquez sur la sidebar pour commencer")
         st.stop()
     
-    # TABS
-    tabs = st.tabs([
-        "🎯 Génération PAA",
-        "🎨 Visuels Gemini",
-        "🔗 Maillage Interne",
-        "📊 ROI & Analytics",
-        "📄 Rapports Client",
-        "💬 Assistant IA",
-        "☁️ Google Workspace"
-    ])
+# TABS
+tabs = st.tabs([
+    "🎯 Génération PAA",
+    "🎨 Visuels Gemini",
+    "🔗 Maillage Interne",
+    "📊 ROI & Analytics",
+    "📄 Rapports Client",
+    "💬 Assistant IA",
+    "☁️ Google Workspace"
+])
     
 # TAB 1: GÉNÉRATION PAA
 with tabs[0]:
